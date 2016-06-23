@@ -37,10 +37,11 @@ PlacePt <- function(x, y, verts, norms, mesh, start){
 
    # Search for the intersection
    int <- vcgRaySearch(lQ, mesh)
-   # if there is no, then we need to search the nearest point
    cas <- 1
+   # if there is no, then we need to search the nearest point
+   # Use the angle to filter out possible points
+   # However this return
    if (int$quality == 0){
-       # normales du mesh (coordonn?es fen?tre 3D)
         temp2 <- rgl.user2window(x = verts[, 1] + norms[, 1],
      				y = verts[,2] + norms[, 2],
      				z = verts[, 3] + norms[, 3],
@@ -49,21 +50,22 @@ PlacePt <- function(x, y, verts, norms, mesh, start){
 
         u <- par3d()$observer
      alpha <- acos((t(u) %*% t(normals)) / (sqrt(rowSums(normals^2)) * sqrt(sum(u^2))))
-     Idx <- alpha > pi #/2
-     Idx <- rep(TRUE, length(X))
+
+     Idx <- alpha > pi/2
+     # sometimes the angle failed then took all vertices
+     if (sum(is.na(Idx))>0 || length(Idx)==0) {
+         Idx <- rep(TRUE, length(X))
+     }
      Xs <- X[Idx]
      Ys <- Y[Idx]
 
      Dist <- sqrt((Xs - x)^2 + (Ys - y)^2)
-     idx <- which.min(Dist)
-
-     print("bug - -- ---")
-     print(str(Idx))
-     print(str(idx))
+      idx <- which.min(Dist)
      int <- subset.mesh(mesh, which(Idx)==idx, select = "vb")
-     print(str(int))
-     #int <- Morpho:::rmVertex(mesh, which(Idx)[idx], keep=TRUE)
-     print("- -- ---")
+     str(int)
+     if (length(int$vb)==0) {
+         int$vb <- c(0,0,0,1) # put the center as closest point if the submesh is empty...
+     }
      cas <- 2
    }
 
@@ -275,10 +277,8 @@ SetPtZoom <- function(dd, specFull, Trans, Pt, IdxPts=NULL, orthoplanes,
   ids2 <- plot3d(specFull2$vb[1, ], specFull2$vb[2, ], specFull2$vb[3, ],
                  size = grDev$ptSize, aspect = FALSE,
                  axes = F, box = F, xlab="", ylab="", zlab="", main = paste("Land - ", IdxPts))
-  if (is.null(specFull2$material)) {
-      #specFull2$material$color <- matrix("gray", 3, dim(specFull2$it)[2])
+  if (is.null(specFull2$material))
       specFull2$material <- "gray"
-  }
   shade3d(specFull2)
 
   # draws eventually the intersections visibles on the submesh
