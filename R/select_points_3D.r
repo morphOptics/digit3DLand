@@ -25,7 +25,8 @@ PlacePt <- function(x, y, verts, norms, mesh, start){
   sqIdx <- (X >= (x-dm)) & (X <= (x+dm)) & (Y >= (y-dm)) & (Y <= (y+dm))
 
   # extraction du sous mesh dans carr? de s?lection (sans utiliser ma fonction submesh, mais avec rmVertex de Morpho)
-  selecMesh <- rmVertex(mesh, which(sqIdx), keep=TRUE)
+  #selecMesh <- rmVertex(mesh, which(sqIdx), keep=TRUE)
+  selecMesh <- digit3DLand:::subset.mesh(mesh, sqIdx)
 
   # d?finition du point cliqu? comme un mesh3d
   Q <- rgl.window2user(X1, Y1, 0)
@@ -58,7 +59,9 @@ PlacePt <- function(x, y, verts, norms, mesh, start){
 
      Dist <- sqrt((Xs - x)^2 + (Ys - y)^2)
      idx <- which.min(Dist)
-     int <- rmVertex(mesh, which(Idx)[idx], keep=TRUE)
+     #int <- rmVertex(mesh, which(Idx)[idx], keep=TRUE)
+     int <- digit3DLand:::subset.mesh(mesh, which(Idx)==idx)
+
      cas <- 2
    }
 
@@ -244,8 +247,8 @@ SetPtZoom <- function(dd, specFull, Trans, Pt, IdxPts=NULL, orthoplanes,
   # les points ? conserver se situent ? moins de 10% de la distance max observ?e entre le point s?lectionn? et l'ensmble des autres vertices du mesh
   keep <- dd < (percDist * max(dd)) # distances inf?rieures ? 10% distance max
 
-  # extraction du sous-mesh (Use rmVertex instead ?)
-  specFull2 <- submesh(specFull, keep)
+  # extraction du sous-mesh (Use rmVertex instead ? actually subset.mesh performs quicker)
+  specFull2 <- digit3DLand:::subset.mesh(specFull, keep)
 
   # si le sous-mesh contient plusieurs meshs isol?s : on ne conserve que le sous-mesh ? proximit? imm?diate du point cliqu?
   temp <- vcgIsolated(specFull2, split = TRUE)

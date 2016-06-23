@@ -25,47 +25,72 @@ project <- function (lm, mesh, sign = TRUE) {
     data <- vcgClost(lm, mesh, smoothNormals = FALSE, sign = sign, borderchk = FALSE)
     return(data)
 }
-
-plotLandmarks <- function(d1, pts, Sp, Tx, idx_pts, grDev){
+#' @title plot of one landmark in a 3D scene
+#' @description Function takes a landmark and plots it onto the surface of a 3D mesh
+#' @param landmark a 3D landmark
+#' @param d1 a rgl scene
+#' @param Sp xxx
+#' @param Tx xxxx
+#' @param idx_pts index of the landmark
+#' @param grDev xxxx
+plot.landmark <- function(landmark, d1, Sp, Tx, idx_pts, grDev, ...){
+    if (length(landmark) != 3) stop("landmark should be a xyz point")
+    # Graphical parameters
+    alpha <- 0.5
+    color <- "green"
+    col <- "red"
+    # Process supplementary args
+    argin <- list(...)
+    if (length(argin)) {
+        if ("alpha" %in% names(argin)) alpha <- argin$alpha
+        if ("color" %in% names(argin)) color <- argin$color
+        if ("col" %in% names(argin)) col <- argin$col
+    }
+    # plot
     rgl.set(d1)
     rgl.pop("shapes", Sp[idx_pts])
     rgl.pop("shapes", Tx[idx_pts])
-    grDev$vSp[idx_pts]<-spheres3d(pts,color = "green",alpha=0.5,radius=grDev$spradius)
-    grDev$vTx[idx_pts]<-text3d(pts,texts=as.character(idx_pts),col="red",cex=grDev$tcex)
+    grDev$vSp[idx_pts] <- spheres3d(landmark, color = color, alpha=alpha, radius=grDev$spradius)
+    grDev$vTx[idx_pts] <- text3d(landmark, texts=as.character(idx_pts), col=col, cex=grDev$tcex)
 
     return(grDev)
 }
+#' @title submesh
+#' @description Extracts a submesh
+#' @details Function build a submesh from the mesh3d object according to some kept vertices
+#' @param mesh a mesh3d object
+#' @param subset expression indicating vertices to keep
+#' @return Return of mesh3d object
+#' @export
+subset.mesh <- function(mesh, subset) {
+    if (class(mesh) != "mesh3d") stop("mesh should be a 'mesh3d' object")
+    if (missing(subset))
+        stop("'subset' not defined and without default value")
+    else if (!is.logical(subset))
+        stop("'subset' must be logical")
 
-#############################################################
-submesh<-function(spec,keep){
+    subMesh <- list()
+    idx_subset <- which(subset)
+    # extraction of vertices and normals
+    subMesh$vb <- mesh$vb[, subset]
+    subMesh$normals <- mesh$normals[, subset]
 
-    # Fonction qui construit un sous mesh ? partir de l'objet mesh3d "mesh" selon les points ? conserver contenus dans le vecteur logique keep
-    # Retourne un objet mesh3d
+    # extraction of faces
+    idxV <- is.element(mesh$it, idx_subset)
+    idxV <- matrix(idxV, nrow=dim(mesh$it)[1], ncol=dim(mesh$it)[2])
+    idx <- (colSums(idxV) == 3)
+    M <- mesh$it[, idx]
+    subMesh$it <- matrix(match(M, idx_subset), nrow=dim(M)[1], ncol=dim(M)[2])
 
-    spec2<-list()
-
-    # extraction des vertices
-    spec2$vb<-spec$vb[,keep]
-
-    # extraction des edges
-    idxV<-is.element(spec$it,which(keep))
-    idxV<-matrix(idxV,dim(spec$it)[1],dim(spec$it)[2],byrow=FALSE)
-    M<-spec$it[,which(colSums(idxV)==3)]
-    spec2$it<-matrix(match(M,which(keep)),dim(M)[1],dim(M)[2])
-
-    # extraction des normales
-    spec2$normals<-spec$normals[,keep]
-
-    # extraction du "material"
-    spec2$material<-spec$material
-    if (length(spec$material)>0){
-        spec2$material$color<-spec$material$color[,which(colSums(idxV)==3)]
+    # Optional extraction of "material"
+    if (!is.null(mesh$material)) {
+        subMesh$material <- mesh$material
+        if (!is.null(mesh$material$color)){
+            subMesh$material$color <- mesh$material$color[, idx]
+        }
     }
-
-    # d?finition de la class de spec2
-    class(spec2) <- "mesh3d"
-
-    return(spec2)
+    class(subMesh) <- "mesh3d"
+    return(subMesh)
 }
 
 

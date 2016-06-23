@@ -1,8 +1,6 @@
-
-#############################################################
 #' @title digitFixed
 #' @description XXXX
-#' @details
+#' @details cccccc
 #' @param specFull full resolution mesh3d object
 #' @param specDecim decimated mesh3d object
 #' @param decim 0-1 number setting the amount of reduction relative to existing face number to decimate the full resolution mesh. Used for multiresolution and only if specDecim is NULL. See vcg:::vcgQEdecim
@@ -13,12 +11,11 @@
 #' @param index Digitalization sequence of landmarks
 #' @param center logical whether or not centering is required
 #' @param orthoplane logical whether or not orthoplane are draw
-#' @param percDist
+#' @param percDist percentage of distance around the landmark use for zooming
 #' @param grDev list with ptSize the point size, windowRect xxxx, spradius and tcex
 #' @export
 #' @author Remi Laffont and Nicolas Navarro
 #' @return
-#' @examples
 #'
 DigitFixed <- function (specFull, specDecim = NULL, decim = 0.5, fixed, templateFile = NULL, idxPtsTemplate,
                         index = 1:fixed, center = TRUE, orthoplane = TRUE,
@@ -114,7 +111,7 @@ DigitFixed <- function (specFull, specDecim = NULL, decim = 0.5, fixed, template
             # Projection of landmarks on decimated mesh for graphics
             Adeci[idx_pts,] <- project(t(A[idx_pts, ]), specDecim,sign=FALSE)$vb[1:3]      # sign ????????????????????
             # plot
-            grDev <- plotLandmarks(d1, Adeci[idx_pts,], Sp, Tx, idx_pts, grDev)
+            grDev <- plot.landmark(Adeci[idx_pts,], d1, Sp, Tx, idx_pts, grDev)
 
             if(!is.null(templateFile) & i==length(idxPtsTemplate)){
                 # tous les points de r?f?rencement du template sont plac?s => calculs pour ajuster le template au mesh
@@ -183,7 +180,7 @@ DigitFixed <- function (specFull, specDecim = NULL, decim = 0.5, fixed, template
             # Projection of landmarks on decimated mesh for graphics
             Adeci[idx_pts,] <- project(t(A[idx_pts, ]), specDecim, sign=FALSE)$vb[1:3]
             # plot
-            grDev <- plotLandmarks(d1, Adeci[idx_pts,], grDev$vSp, grDev$vTx, idx_pts, grDev)
+            grDev <- plot.landmark(Adeci[idx_pts,], d1, grDev$vSp, grDev$vTx, idx_pts, grDev)
         }
     }
 
@@ -212,7 +209,7 @@ DigitFixed <- function (specFull, specDecim = NULL, decim = 0.5, fixed, template
         # Projection of landmarks on decimated mesh for graphics
         Adeci[idx_pts,] <- project(t(A[idx_pts,]), specDecim, sign=FALSE)$vb[1:3]      # sign ??????????????????????
         # plot
-        grDev <- plotLandmarks(d1, Adeci[idx_pts,], Sp, Tx, idx_pts, grDev)
+        grDev <- plot.landmark(Adeci[idx_pts,], d1, Sp, Tx, idx_pts, grDev)
 
     }
     return(A)
