@@ -26,7 +26,7 @@ PlacePt <- function(x, y, verts, norms, mesh, start){
 
   # extraction du sous mesh dans carr? de s?lection (sans utiliser ma fonction submesh, mais avec rmVertex de Morpho)
   #selecMesh <- rmVertex(mesh, which(sqIdx), keep=TRUE)
-  selecMesh <- digit3DLand:::subset.mesh(mesh, sqIdx)
+  selecMesh <- subset.mesh(mesh, sqIdx)
 
   # d?finition du point cliqu? comme un mesh3d
   Q <- rgl.window2user(X1, Y1, 0)
@@ -35,33 +35,35 @@ PlacePt <- function(x, y, verts, norms, mesh, start){
   lQ <- list(vb = matrix(c(Q, 1), 4, 1), normals = matrix(c(normQ, 1), 4, 1))
   class(lQ) <- "mesh3d"
 
-   # recherche de l'intersection
+   # Search for the intersection
    int <- vcgRaySearch(lQ, mesh)
-
-#   spheres3d(int$vb[1],int$vb[2],int$vb[3],col="cyan",radius=0.2,alpha=0.1)
-   # si rayon n'intersecte pas le mesh : vcgRaySearch ne retourne pas un r?sultat appropri?
-   # => n?cessit? de rechercher le point le plus proche
+   # if there is no, then we need to search the nearest point
    cas <- 1
    if (int$quality == 0){
-     # normales du mesh (coordonn?es fen?tre 3D)
-     temp2 <- rgl.user2window(x = verts[, 1]+norms[, 1],
-     				y = verts[,2]+norms[, 2],
+       # normales du mesh (coordonn?es fen?tre 3D)
+        temp2 <- rgl.user2window(x = verts[, 1] + norms[, 1],
+     				y = verts[,2] + norms[, 2],
      				z = verts[, 3] + norms[, 3],
      				projection = start$projection)
-     normals <- temp2 - temp
+        normals <- temp2 - temp
 
-     u <- par3d()$observer
+        u <- par3d()$observer
      alpha <- acos((t(u) %*% t(normals)) / (sqrt(rowSums(normals^2)) * sqrt(sum(u^2))))
-     Idx <- alpha > pi/2
-
+     Idx <- alpha > pi #/2
+     Idx <- rep(TRUE, length(X))
      Xs <- X[Idx]
      Ys <- Y[Idx]
 
      Dist <- sqrt((Xs - x)^2 + (Ys - y)^2)
      idx <- which.min(Dist)
-     #int <- rmVertex(mesh, which(Idx)[idx], keep=TRUE)
-     int <- digit3DLand:::subset.mesh(mesh, which(Idx)==idx)
 
+     print("bug - -- ---")
+     print(str(Idx))
+     print(str(idx))
+     int <- subset.mesh(mesh, which(Idx)==idx, select = "vb")
+     print(str(int))
+     #int <- Morpho:::rmVertex(mesh, which(Idx)[idx], keep=TRUE)
+     print("- -- ---")
      cas <- 2
    }
 
@@ -248,14 +250,14 @@ SetPtZoom <- function(dd, specFull, Trans, Pt, IdxPts=NULL, orthoplanes,
   keep <- dd < (percDist * max(dd)) # distances inf?rieures ? 10% distance max
 
   # extraction du sous-mesh (Use rmVertex instead ? actually subset.mesh performs quicker)
-  specFull2 <- digit3DLand:::subset.mesh(specFull, keep)
+  specFull2 <- subset.mesh(specFull, keep)
 
   # si le sous-mesh contient plusieurs meshs isol?s : on ne conserve que le sous-mesh ? proximit? imm?diate du point cliqu?
   temp <- vcgIsolated(specFull2, split = TRUE)
   Min <- +Inf
   for (ii in 1:length(temp)) {
     vb <- temp[[ii]]$vb[1:3, ]
-    cs <- sqrt(colSums((vb - (Pt + Trans))^2))
+    cs <- sqrt(colSums((vb - (Pt + Trans))^2)) #!problem
     MinT <- cs[which(cs==min(cs))]
     if (MinT < Min){
       specFull2 <- temp[[ii]]
@@ -263,10 +265,10 @@ SetPtZoom <- function(dd, specFull, Trans, Pt, IdxPts=NULL, orthoplanes,
     }
   }
 
-  # plot
-  Trans2 <- rowMeans(specFull2$vb[1:3, ])
+  # center the vertices of the submesh
+  Trans2 <- apply(specFull2$vb[1:3, ], 1, mean)
   specFull2$vb[1:3,] <- specFull2$vb[1:3, ] - Trans2
-
+  # plot
   param3d <- par3d()
   d2 <- open3d()
   par3d(windowRect = grDev$windowRect[2, ])
@@ -274,40 +276,37 @@ SetPtZoom <- function(dd, specFull, Trans, Pt, IdxPts=NULL, orthoplanes,
                  size = grDev$ptSize, aspect = FALSE,
                  axes = F, box = F, xlab="", ylab="", zlab="", main = paste("Land - ", IdxPts))
   if (is.null(specFull2$material)) {
-      specFull2$material$color <- matrix("gray", 3, dim(specFull2$it)[2])
+      #specFull2$material$color <- matrix("gray", 3, dim(specFull2$it)[2])
+      specFull2$material <- "gray"
   }
-  shade3d(specFull2) # pb de trous parfois... ??????????????????????????
+  shade3d(specFull2)
 
-  # dessin des ?ventuelles intersections qui seraient visibles sur le sous-mesh
+  # draws eventually the intersections visibles on the submesh
   if (!is.null(orthoplanes$vInter)){
     for (i in 1:3){
-      # on ne conserve que les points d'intersections ? proximit? imm?diate du point cliqu?...
+      # Only intersection points closed to the intersection planes
       ddi <- sqrt(colSums((t(orthoplanes$vInter[[i]])-Trans-Pt)^2))
       keep <- ddi < (percDist*max(ddi))
-
       if (sum(keep)> 0){
-        # ... s'il y en a, on les dessine
         inter <- sweep(orthoplanes$vInter[[i]][keep, ], 2, Trans2)
-            # - matrix(Trans2, nrow = dim(inter)[1], ncol=3, byrow=TRUE)
         lines3d(inter, col="red", lwd=2)
       }
     }
   }
 
-
-  # r?glage de l'orientation du mesh de zoom pour qu'elle corresponde ? l'orientation du mesh d?cim?
+  # Adjust the orientation of the zoomed mesh to correspond to the one of the decim mesh
   rgl.viewpoint(userMatrix = param3d$userMatrix)
 
-  # pla?age du point sur le mesh de zoom
+  # Add the point on the zoomed mesh
   if (is.null(grDev$spradius)) {
-     tmp<-apply(specFull2$vb[1:3,],1,range)
-     tmp<-tmp[2,]-tmp[1,]
-     grDev$spradius<-(1/50)*min(tmp)
+     tmp <- apply(specFull2$vb[1:3,],1,range)
+     tmp <- tmp[2,]-tmp[1,]
+     grDev$spradius <- (1/50)*min(tmp)
   }
   res2 <- SelectPoints3d(specFull2, modify, A, IdxPts, grDev)
 
   rgl.close()
-  return(list(coords=res2$coords,sp=res2$sp,Trans2=Trans2,tx=res2$tx))
+  return(list(coords = res2$coords, sp = res2$sp, Trans2 = Trans2, tx = res2$tx))
 }
 
 

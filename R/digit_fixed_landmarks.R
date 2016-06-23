@@ -23,15 +23,18 @@ DigitFixed <- function (specFull, specDecim = NULL, decim = 0.5, fixed, template
                                                       ptSize = 1, spradius = NULL, tcex=2)) {
 
     if (class(specFull) != "mesh3d") stop("specFull must have class \"mesh3d\".")
-    if (is.null(specFull$material$color)) {
-        specFull$material$color <- matrix("gray", 3, dim(specFull$it)[2])
+    # if (is.null(specFull$material$color)) {
+    #     specFull$material$color <- matrix("gray", 3, dim(specFull$it)[2])
+    # }
+    if (is.null(specFull$material)) {
+        specFull$material <- "gray"
     }
     if (is.null(specDecim)) {
         print("Mesh decimation for multiresolution view")
         specDecim <- vcgQEdecim(specFull, percent = decim)
     }
-    if (is.null(specDecim$material$color)) {
-        specDecim$material$color <- matrix("gray", 3, dim(specDecim$it)[2])
+    if (is.null(specDecim$material)) {
+        specDecim$material <- "gray"
     }
     if (missing(fixed)) {
         stop("missing number of landmarks to digitalize")
@@ -42,10 +45,10 @@ DigitFixed <- function (specFull, specDecim = NULL, decim = 0.5, fixed, template
         idxPtsTemplate <- 1:fixed
     } else {
         if (missing(idxPtsTemplate)) {
-            idxPtsTemplate <- 1:3
-            warning("idxPtsTemplate was missing. First 3 landmarks will be used to align the template")
+            idxPtsTemplate <- 1:4
+            warning("idxPtsTemplate was missing. First 4 landmarks will be used to align the template")
         } else
-            if (length(idxPtsTemplate) < 3) stop("idxPtsTemplate must contain at least 3 landmarks")
+            if (length(idxPtsTemplate) < 4) stop("idxPtsTemplate must contain at least 4 landmarks")
         p1 <- length(idxPtsTemplate)
         template <- list()
         template$M <- templateFile
@@ -61,9 +64,11 @@ DigitFixed <- function (specFull, specDecim = NULL, decim = 0.5, fixed, template
     if (center == TRUE) {
         tmp <- scale(t(specDecim$vb[-4, ]), scale = FALSE)
         specDecim$vb <- rbind(t(tmp), 1)
-        Trans <- attr(specDecim,"scaled:center") <- attr(tmp,"scaled:center")
-    } else Trans <- attr(specDecim,"scaled:center") <- rep(0, 3)
-
+        # Trans <- attr(specDecim,"scaled:center") <- attr(tmp,"scaled:center")
+         Trans <- rep(0, 3)
+        tmp <- scale(t(specFull$vb[-4, ]), scale = FALSE)
+        specFull$vb <- rbind(t(tmp), 1)
+    } # else Trans <- attr(specDecim,"scaled:center") <- rep(0, 3)
 
     # plot decimated mesh
     d1 <- Clear3d()
@@ -109,7 +114,7 @@ DigitFixed <- function (specFull, specDecim = NULL, decim = 0.5, fixed, template
             # A coordinates
             A[idx_pts, ] <- res2$coords + res2$Trans2 - Trans
             # Projection of landmarks on decimated mesh for graphics
-            Adeci[idx_pts,] <- project(t(A[idx_pts, ]), specDecim,sign=FALSE)$vb[1:3]      # sign ????????????????????
+            Adeci[idx_pts,] <- project(A[idx_pts, ,drop=FALSE], specDecim, trans = TRUE)
             # plot
             grDev <- plot.landmark(Adeci[idx_pts,], d1, Sp, Tx, idx_pts, grDev)
 
@@ -154,23 +159,31 @@ DigitFixed <- function (specFull, specDecim = NULL, decim = 0.5, fixed, template
 
                 # remise des valeurs des coord des points d?j? plac?s au pr?alable contenues dans A vers B
                 B <- BB
-                B[!is.na(A[,1])] <- A[!is.na(A[,1])]
-                ptsB <- project(B, specDecim,sign=FALSE) # sign ??????????????????????????
-
+                B[!is.na(A[,1]), ] <- A[!is.na(A[,1]), ]
+                ptsB <- project(B, specDecim)
+                for (ii in 1:nrow(B)){
+                    spheres3d(B[ii, ], color = "orange", alpha=0.5,radius=4*grDev$spradius)
+                }
+                #sweep(B, 2, Trans - res2$Trans2)
+                B <- project(B, specFull, trans = TRUE)
+                for (ii in 1:nrow(B)){
+                    spheres3d(B[ii, ], color = "red", alpha=0.5,radius=4*grDev$spradius)
+                }
                 # plot des points/labels de B pas plac?s au pr?alables
                 vv<-index[Idx]
                 for (ii in 1:length(vv)){
                     grDev$vSp[vv[ii]]<-spheres3d(t(ptsB$vb[1:3,vv[ii]]),color = "blue", alpha=0.5,radius=grDev$spradius)
                     grDev$vTx[vv[ii]]<-text3d(t(ptsB$vb[1:3,vv[ii]]),texts=as.character(vv[ii]),col="red",cex=grDev$tcex)
                 }
+
             }
 
         }else{
             # Selection of remaining landmarks (if any)
             idx_pts <- index[Idx[i-length(idxPtsTemplate)]]
             # distances full resolution mesh to automatic template landmark
-            Pt <- B[idx_pts,] + Trans
-            dd <- sqrt(colSums((specFull$vb[1:3,] - Pt)^2))
+            Pt <- sweep(B[idx_pts, , drop = FALSE], 2, Trans, "+")
+            dd <- sqrt(colSums((sweep(specFull$vb[1:3,], 1, Pt))^2))
 
             # zoom on full resolution mesh around the selected landmark
             res2 <- SetPtZoom(dd, specFull=specFull, Trans=Trans, Pt=Pt, IdxPts = idx_pts,
@@ -178,7 +191,7 @@ DigitFixed <- function (specFull, specDecim = NULL, decim = 0.5, fixed, template
             # A coordinates
             A[idx_pts, ] <- res2$coords + res2$Trans2 - Trans
             # Projection of landmarks on decimated mesh for graphics
-            Adeci[idx_pts,] <- project(t(A[idx_pts, ]), specDecim, sign=FALSE)$vb[1:3]
+            Adeci[idx_pts,] <- project(t(A[idx_pts, ]), specDecim)$vb[1:3]
             # plot
             grDev <- plot.landmark(Adeci[idx_pts,], d1, grDev$vSp, grDev$vTx, idx_pts, grDev)
         }
