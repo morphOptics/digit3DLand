@@ -237,34 +237,36 @@ SelectPoints3d<-function (mesh, modify=FALSE, A=NULL, IdxPts=NULL, grDev) {
 
 
 #############################################################
-SetPtZoom <- function(dd, specFull, Trans, Pt, IdxPts=NULL, orthoplanes,
+#' @title SetPtZoom
+#' @description Zoom around the selected point on the decimated mesh
+#' @details Function zoomed on the selected point by opening a new 3d scene with
+#' the full resolution mesh within some distance of the point
+#' @param dd Distance
+#' @param specFull Full resolution mesh
+#' @param Pt Numeric vector with the xyz-coordinates of the clicked point
+#' @param IdxPts xxx
+#' @param orthoplanes xxx
+#' @param percDist proportion of the maximu distance between the point and all vertices
+#' @param modify if the point is modifiable
+#' @param A Matrix of coordinates of landmarks
+#' @param grDev Some graphical parameters
+#'
+#' @return
+
+SetPtZoom <- function(dd, specFull, Pt, IdxPts=NULL, orthoplanes,
                       percDist=0.15, modify=FALSE, A=NULL, grDev) {
 
-    # Fonction pour effectuer "un zoom" autour du point s?lectionn? sur le mesh d?cim? :
-    # ouvre une 2?me fen?tre graphique avec la partie du mesh non d?cim? correspondante et pla?age du point
+    if (missing(grDev)) stop("grDev missing without default value. See 'DigitFixed' ")
 
-    # les points ? conserver se situent ? moins de 10% de la distance max observ?e entre le point s?lectionn? et l'ensmble des autres vertices du mesh
-    keep <- dd < (percDist * max(dd)) # distances inf?rieures ? 10% distance max
-
-    # extraction du sous-mesh (Use rmVertex instead ? actually subset.mesh performs quicker)
+    # Conserved only vertices at some distances (eg 15%) maximum of the cliked point
+    keep <- dd < (percDist * max(dd))
     specFull2 <- subset.mesh(specFull, keep)
 
-    # si le sous-mesh contient plusieurs meshs isol?s : on ne conserve que le sous-mesh ? proximit? imm?diate du point cliqu?
-    temp <- vcgIsolated(specFull2, split = TRUE)
-    Min <- +Inf
-    for (ii in 1:length(temp)) {
-        vb <- temp[[ii]]$vb[1:3, ]
-        cs <- sqrt(colSums((vb - (Pt + Trans))^2)) #!problem
-        MinT <- cs[which(cs==min(cs))]
-        if (MinT < Min){
-            specFull2 <- temp[[ii]]
-            Min <- MinT
-        }
-    }
-    # distMin <- function(x, y){
-    #     tmp <- sqrt(apply(sweep(x$vb, 1, y$vb)^2, 2, mean))
-    #     return(c(min(tmp), which.min(tmp)))
-    # }
+    # if the submesh contains several isolated meshs, we keep the closest to the clicked point
+    tmp <- vcgIsolated(specFull2, split = TRUE)
+    vd <- lapply(tmp, distMin, list(vb = matrix(c(Pt, 1), 4, 1)))
+    vd <- matrix(unlist(vd), length(tmp), 2, byrow=TRUE)
+    specFull2 <- tmp[[which.min(vd[, 1])]]
 
     # center the vertices of the submesh
     Trans2 <- apply(specFull2$vb[1:3, ], 1, mean)
@@ -284,7 +286,7 @@ SetPtZoom <- function(dd, specFull, Trans, Pt, IdxPts=NULL, orthoplanes,
     if (!is.null(orthoplanes$vInter)){
         for (i in 1:3){
             # Only intersection points closed to the intersection planes
-            ddi <- sqrt(colSums((t(orthoplanes$vInter[[i]])-Trans-Pt)^2))
+            ddi <- sqrt(colSums((t(orthoplanes$vInter[[i]])-Pt)^2))
             keep <- ddi < (percDist*max(ddi))
             if (sum(keep)> 0){
                 inter <- sweep(orthoplanes$vInter[[i]][keep, ], 2, Trans2)
