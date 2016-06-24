@@ -113,7 +113,7 @@ DigitFixed <- function (specFull, decim = 0.25, fixed, index = 1:fixed,
             # A coordinates
             A[idx_pts, ] <- res2$coords + res2$Trans2
             # Projection of landmarks on decimated mesh for graphics
-            Adeci[idx_pts,] <- project(A[idx_pts, ,drop=FALSE], specDecim, trans = TRUE)
+            Adeci[idx_pts,] <- project(A[idx_pts, , drop=FALSE], specDecim, trans = TRUE)
             # plot
             grDev <- plot.landmark(Adeci[idx_pts,], d1, Sp, Tx, idx_pts, grDev, ...)
 
@@ -186,9 +186,9 @@ DigitFixed <- function (specFull, decim = 0.25, fixed, index = 1:fixed,
             # A coordinates
             A[idx_pts, ] <- res2$coords + res2$Trans2
             # Projection of landmarks on decimated mesh for graphics
-            Adeci[idx_pts,] <- project(t(A[idx_pts, ]), specDecim)$vb[1:3]
+            Adeci[idx_pts,] <- project(A[idx_pts, ,drop=FALSE], specDecim, trans = TRUE)
             # plot
-            grDev <- plot.landmark(Adeci[idx_pts,], d1, grDev$vSp, grDev$vTx, idx_pts, grDev, ...)
+            grDev <- plot.landmark(Adeci[idx_pts, ], d1, grDev$vSp, grDev$vTx, idx_pts, grDev, ...)
         }
     }
 
@@ -215,7 +215,7 @@ DigitFixed <- function (specFull, decim = 0.25, fixed, index = 1:fixed,
         # A coordinates
         A[idx_pts,] <- res2$coords + res2$Trans2
         # Projection of landmarks on decimated mesh for graphics
-        Adeci[idx_pts,] <- project(t(A[idx_pts,]), specDecim, sign=FALSE)$vb[1:3]
+        Adeci[idx_pts,] <- project(t(A[idx_pts, ]), specDecim, sign=FALSE)$vb[1:3]
         # plot
         grDev <- plot.landmark(Adeci[idx_pts,], d1, Sp, Tx, idx_pts, grDev, ...)
 

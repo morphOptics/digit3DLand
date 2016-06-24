@@ -9,7 +9,7 @@ Authors@R: c(person("Remi", "Laffont", email = "remi.laffont@u-bourgogne.fr", ro
 Author: Nicolas Navarro [aut, cre],
   Remi Laffont [aut],
 Description:
-License: GP (>=2.0)
+License: GPL (>=2.0)
 Depends:
     R (>= 3.1.0), rgl,Rvcg,sp
 LazyData: TRUE

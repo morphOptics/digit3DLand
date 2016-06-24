@@ -158,9 +158,7 @@ rgl.select2<-function (button = c("left", "middle", "right"), verts, norms, mesh
                     cex=grDev$tcex, adj = rep(grDev$spradius, 2))
     }
     # Finalizing ----------------------------
-    End <- function(x,y){
-
-    }
+    End <- function(x,y){ }
 
     # Codes based on rgl.select()
     button <- match.arg(button)
@@ -176,7 +174,7 @@ rgl.select2<-function (button = c("left", "middle", "right"), verts, norms, mesh
 
     # Executionof the code is waiting until the user press ESC
     dev <- rgl.cur()
-    while (dev==rgl.cur()) {
+    while (dev == rgl.cur()) {
         if (!is.null(idx)) {
             result <- rgl:::rgl.selectstate()
             # if ESC -> get out
@@ -224,11 +222,11 @@ SelectPoints3d<-function (mesh, modify=FALSE, A=NULL, IdxPts=NULL, grDev) {
     StopPts <- 0
     # Stop when landmark is validated by ESC or when the window is closed
     while (StopPts==0) {
-        temp <- rgl.select2(button="right",verts = verts, norms = norms, mesh = mesh,
+        temp <- rgl.select2(button="right", verts = verts, norms = norms, mesh = mesh,
                             modify = modify, A = A, IdxPts = IdxPts, grDev = grDev)
         if (temp$isClosed | temp$isDone){
             if (temp$isClosed){
-                # Need to close twice becaus of rgl...
+                # Need to close twice because of rgl...
                 rgl.close()
             }
             break
@@ -300,8 +298,7 @@ SetPtZoom <- function(dd, specFull, Pt, IdxPts=NULL, orthoplanes,
 
     # Add the point on the zoomed mesh
     if (is.null(grDev$spradius)) {
-        tmp <- apply(specFull2$vb[1:3,], 1, range)
-        tmp <- tmp[2,] - tmp[1,]
+        tmp <- diff(apply(specFull2$vb[1:3,], 1, range))
         grDev$spradius <- (1/50)*min(tmp)
     }
     res2 <- SelectPoints3d(specFull2, modify, A, IdxPts, grDev)
