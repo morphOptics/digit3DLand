@@ -26,7 +26,7 @@ project <- function (lm, mesh, sign = TRUE, trans = FALSE) {
     if (trans) data <- t(data$vb[1:3, ])
     return(data)
 }
-#' @title plot of one landmark in a 3D scene
+#' @title plot.landmark
 #' @description Function takes a landmark and plots it onto the surface of a 3D mesh
 #' @param landmark a 3D landmark
 #' @param d1 a rgl scene
@@ -45,9 +45,9 @@ plot.landmark <- function(landmark, d1, Sp, Tx, idx_pts, grDev, ...){
     # Modify them in they are in the optional args
     argin <- list(...)
     if (length(argin)) {
-        if (!("alpha" %in% names(argin))) alpha <- 0.5 #argin$alpha
-        if (!("color" %in% names(argin))) color <- "green" #argin$color
-        if (!("col" %in% names(argin))) col <- "red" #argin$col
+        if ("alpha" %in% names(argin)) alpha <- argin$alpha
+        if ("color" %in% names(argin)) color <- argin$color
+        if ("col" %in% names(argin)) col <- argin$col
     }
     # plot
     rgl.set(d1)
@@ -59,7 +59,7 @@ plot.landmark <- function(landmark, d1, Sp, Tx, idx_pts, grDev, ...){
 
     return(grDev)
 }
-#' @title submesh
+#' @title subset.mesh3d
 #' @description Extracts a submesh
 #' @details Function build a submesh from the mesh3d object according to some kept vertices
 #' @param mesh a mesh3d object
@@ -67,32 +67,35 @@ plot.landmark <- function(landmark, d1, Sp, Tx, idx_pts, grDev, ...){
 #' @param select expression indicating fields to select.
 #' @return Return of mesh3d object
 #' @export
-subset.mesh <- function(mesh, subset, select=NULL) {
-    if (class(mesh) != "mesh3d") stop("mesh should be a 'mesh3d' object")
-    if (missing(subset))
+subset.mesh3d <- function(mesh, subset, select=NULL) {
+
+    if (missing(subset)) {
         stop("'subset' not defined and without default value")
-    else if (!is.logical(subset))
-        stop("'subset' must be logical")
+    } else {
+        if (!is.logical(subset))
+            stop("'subset' must be logical")
+    }
 
     subMesh <- list()
     idx_subset <- which(subset)
-    # extraction of vertices and normals
-    subMesh$vb <- mesh$vb[, subset]
-    if (is.null(select)) {
+    if (is.null(select) || "vb" %in% select)
+        subMesh$vb <- mesh$vb[, subset]
+    if (is.null(select) || any(c("norm", "normals") %in% select))
         subMesh$normals <- mesh$normals[, subset]
-        # extraction of faces
+    if (is.null(select) || any(c("face", "faces", "it") %in% select)) {
         idxV <- is.element(mesh$it, idx_subset)
         idxV <- matrix(idxV, nrow=dim(mesh$it)[1], ncol=dim(mesh$it)[2])
         idx <- (colSums(idxV) == 3)
         M <- mesh$it[, idx]
         subMesh$it <- matrix(match(M, idx_subset), nrow=dim(M)[1], ncol=dim(M)[2])
-        # Optional extraction of "material"
+     }
+    if (is.null(select) || any(c("mat", "material") %in% select)) {
         if (!is.null(mesh$material)) {
             subMesh$material <- mesh$material
-            if (is.list(mesh$material)){ #per vertex color attribute
+            if (is.list(mesh$material)){ #per face color attribute
                 subMesh$material$color <- mesh$material$color[, idx]
             }
-        }
+        } else subMesh$material <- "gray"
     }
     class(subMesh) <- "mesh3d"
     return(subMesh)

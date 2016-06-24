@@ -2,7 +2,7 @@
 % Please edit documentation in R/utils_3D.R
 \name{plot.landmark}
 \alias{plot.landmark}
-\title{plot of one landmark in a 3D scene}
+\title{plot.landmark}
 \usage{
 plot.landmark(landmark, d1, Sp, Tx, idx_pts, grDev, ...)
 }

@@ -35,8 +35,8 @@ PlacePt <- function(x, y, verts, norms, mesh, start){
     dm <- sqrt(max(d))
     # indices within the selection
     sqIdx <- (X >= (x-dm)) & (X <= (x+dm)) & (Y >= (y-dm)) & (Y <= (y+dm))
-    # Extract the submesh #selecMesh <- rmVertex(mesh, which(sqIdx), keep=TRUE)
-    selecMesh <- subset.mesh(mesh, sqIdx)
+    # Extract the submesh
+    selecMesh <- subset(mesh, subset = sqIdx)
 
     # defined the clicked point as a mesh3d
     Q <- rgl.window2user(X1, Y1, 0)
@@ -70,7 +70,7 @@ PlacePt <- function(x, y, verts, norms, mesh, start){
 
         Dist <- sqrt((Xs - x)^2 + (Ys - y)^2)
         idx <- which.min(Dist)
-        int <- subset.mesh(mesh, which(Idx)==idx, select = "vb")
+        int <- subset(mesh, subset = which(Idx)==idx, select = "vb")
         # submesh 'int' may be empty then will be set as the case: undefined visibles below
         # one other trick was to put the center as the closest point int$vb <- c(0,0,0,1)
         # sometimes submesh is bigger than one single vertex (?)
@@ -260,9 +260,9 @@ SetPtZoom <- function(dd, specFull, Pt, IdxPts=NULL, orthoplanes,
 
     # Conserved only vertices at some distances (eg 15%) maximum of the cliked point
     keep <- dd < (percDist * max(dd))
-    specFull2 <- subset.mesh(specFull, keep)
+    specFull2 <- subset(specFull, subset = keep)
 
-    # if the submesh contains several isolated meshs, we keep the closest to the clicked point
+    # if the submesh contains several isolated meshes, we keep the closest to the clicked point
     tmp <- vcgIsolated(specFull2, split = TRUE)
     vd <- lapply(tmp, distMin, list(vb = matrix(c(Pt, 1), 4, 1)))
     vd <- matrix(unlist(vd), length(tmp), 2, byrow=TRUE)
@@ -286,7 +286,7 @@ SetPtZoom <- function(dd, specFull, Pt, IdxPts=NULL, orthoplanes,
     if (!is.null(orthoplanes$vInter)){
         for (i in 1:3){
             # Only intersection points closed to the intersection planes
-            ddi <- sqrt(colSums((t(orthoplanes$vInter[[i]])-Pt)^2))
+            ddi <- sqrt(colSums((t(orthoplanes$vInter[[i]]) - Pt)^2))
             keep <- ddi < (percDist * max(ddi))
             if (sum(keep)> 0){
                 inter <- sweep(orthoplanes$vInter[[i]][keep, ], 2, Trans2)

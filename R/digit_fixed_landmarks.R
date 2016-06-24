@@ -3,7 +3,7 @@
 #' @details cccccc
 #' @param specFull full resolution mesh3d object
 #' @param specDecim decimated mesh3d object
-#' @param decim 0-1 number setting the amount of reduction relative to existing face number to decimate the full resolution mesh. Used for multiresolution and only if specDecim is NULL. See vcg:::vcgQEdecim
+#' @param decim 0-1 number setting the amount of reduction relative to existing face number to decimate the full resolution mesh. Used for multiresolution and only if specDecim is NULL. (see \code{\link[Rvcg]{vcgQEdecim}})
 #' @param fixed number of landmarks to digitalize
 #' @param index Digitalization sequence of landmarks
 #' @param templateFile template of 3D coordinates. Order of landmarks must be the
@@ -16,7 +16,7 @@
 #' @export
 #' @return XXXX
 #'
-DigitFixed <- function (specFull, specDecim = NULL, decim = 0.5, fixed, index = 1:fixed,
+DigitFixed <- function (specFull, decim = 0.25, fixed, index = 1:fixed,
                         templateFile = NULL, idxPtsTemplate,
                         orthoplane = TRUE, percDist = 0.15,
                         grDev = list(windowRect = rbind(c(0,50,830,904), c(840,50,1672,904)),
@@ -28,15 +28,17 @@ DigitFixed <- function (specFull, specDecim = NULL, decim = 0.5, fixed, index = 
     if (is.null(specFull$material))
         specFull$material <- "gray"
 
-    if (is.null(specDecim)) {
+    if (decim != 1) {
         cat("\nMesh decimation for multiresolution view ----------\n")
         specDecim <- vcgQEdecim(specFull, percent = decim)
         cat("---------------------------------------------------\n")
+    } else specDecim <- specFull
+
+    if (is.null(specFull$material)) {
+        specFull$material <- specDecim$material <- "gray"
+    } else {
+        specDecim$material <- "gray" # We may want to fix this by transfering vertex color etc
     }
-
-    if (is.null(specDecim$material))
-        specDecim$material <- "gray"
-
     if (missing(fixed)) {
         stop("missing number of landmarks to digitalize")
     } else {
@@ -66,8 +68,12 @@ DigitFixed <- function (specFull, specDecim = NULL, decim = 0.5, fixed, index = 
         grDev$windowRect[1, ] <- c(0,50,830,904)
     if (length(grDev$windowRect) == 4)
         grDev$windowRect <- rbind(grDev$windowRect, c(840,50,1672,904))
+    if (is.null(grDev$spradius)) {
+        tmp <- diff(apply(specDecim$vb[1:3,], 1, range))
+        grDev$spradius <- (1/50) * min(tmp)
+    }
 
-    # Centering of the mesh (not anymore an option, simplify back tracking of translations)
+    # Centering of the meshesb on the centroid of the decimated one
     tmp <- scale(t(specDecim$vb[-4, ]), scale = FALSE)
     specDecim$vb[-4, ] <- t(tmp)
     specFull$vb[-4, ] <- sweep(specFull$vb[-4, ], 1, attr(tmp, which="scaled:center"))
@@ -75,18 +81,8 @@ DigitFixed <- function (specFull, specDecim = NULL, decim = 0.5, fixed, index = 
     # plot decimated mesh
     d1 <- Clear3d()
     par3d(windowRect = grDev$windowRect[1, ])
-    # Don't need to plot all vertices for the decimated mesh (important is the full resolution)
-    # ids1 <- plot3d(specDecim$vb[1, ], specDecim$vb[2, ], specDecim$vb[3, ],
-    #                size = grDev$ptSize, aspect = FALSE,
-    #                axes = F, box = F, xlab="", ylab="", zlab="")
     shade3d(specDecim)
     grDev$dev <- rgl.cur()
-
-    if (is.null(grDev$spradius)) {
-        tmp <- apply(specDecim$vb[1:3,], 1, range)
-        tmp <- tmp[2,] - tmp[1,]
-        grDev$spradius <- (1/50) * min(tmp)
-    }
 
     # plot of orthogonal planes: they are initialized as major axes of the mesh
     orthoplanes <- list(vInter=NULL, vPlanes = NULL)
@@ -96,7 +92,7 @@ DigitFixed <- function (specFull, specDecim = NULL, decim = 0.5, fixed, index = 
     A <- Adeci <- matrix(NA, fixed, 3)
     rownames(A) <- 1:fixed
     colnames(A) <- c("x","y","z")
-    attr(A, which="spec.name") <- deparse(substitute(specFull))
+    attr(A, which = "spec.name") <- deparse(substitute(specFull))
 
     Idx <- setdiff(1:fixed, index[idxPtsTemplate])
     for (i in 1:fixed){
@@ -109,7 +105,7 @@ DigitFixed <- function (specFull, specDecim = NULL, decim = 0.5, fixed, index = 
             Pt <- res$coords
 
             # distances full resolution mesh to template landmark
-            dd <- sqrt(colSums((specFull$vb[1:3,] - Pt)^2))
+            dd <- sqrt(colSums((sweep(specFull$vb[1:3,], 1, Pt))^2))
 
             # zoom on full resolution mesh around the selected landmark
             res2 <- SetPtZoom(dd, specFull=specFull, Pt=Pt, IdxPts = idx_pts,
@@ -122,17 +118,17 @@ DigitFixed <- function (specFull, specDecim = NULL, decim = 0.5, fixed, index = 
             grDev <- plot.landmark(Adeci[idx_pts,], d1, Sp, Tx, idx_pts, grDev, ...)
 
             if(!is.null(templateFile) & i==length(idxPtsTemplate)){
-                # tous les points de r?f?rencement du template sont plac?s => calculs pour ajuster le template au mesh
-                # d?finition de 3 matrices de configurations :
-                # - configA : points plac?s sur le mesh
-                # - configB : points contenus dans templateFile
-                # - configC : points contenus dans templateFile comparables ? configA
+                # all reference points of the template are placed => fits the template to the mesh
+                # defines 3 matrices of configurations:
+                # - configA : points placed on the mesh
+                # - configB : points within the templateFile
+                # - configC : points within the templateFile and in configA
                 configA<-as.matrix(A[!is.na(A[,1]), ])
                 configB<-as.matrix(template$M)
                 p2<-dim(configB)[1]
                 configC<-configB[idxPtsTemplate,]
 
-                # transation & scaling de configA & configC
+                # transation & scaling of configA and configC
                 transA<-colMeans(configA)
                 AA<-configA-matrix(transA,p1,3,byrow=TRUE)
                 scaleA<-1/sqrt(sum(AA^2))
@@ -142,7 +138,7 @@ DigitFixed <- function (specFull, specDecim = NULL, decim = 0.5, fixed, index = 
                 scaleB<-1/sqrt(sum(BB^2))
                 BB<-BB*scaleB
 
-                # rotation de configC sur configA
+                # rotation of configC on configA
                 sv<-svd(t(AA)%*%BB)
                 U<-sv$v
                 V<-sv$u
@@ -150,28 +146,22 @@ DigitFixed <- function (specFull, specDecim = NULL, decim = 0.5, fixed, index = 
                 V[,3]<-sig * V[,3]
                 rot<- U%*%t(V)
 
-                # applications des transformations calcul?es ? partir de configC sur configB
+                # apply translation, rotation and scaling compute from configC to configB
                 BB<-configB
                 BB<-BB-matrix(transB,p2,3,byrow=TRUE)
                 BB<-BB*scaleB
                 BB<-BB%*%rot
 
-                # mise ? l'?chelle et translation pour que configB retrouve une taille et une position comparable ? configA
+                # scaling and translation in order configB find a size and position comparable to configA
                 BB<-BB/scaleA
                 BB<-BB+matrix(transA,p2,3,byrow=TRUE)
 
-                # remise des valeurs des coord des points d?j? plac?s au pr?alable contenues dans A vers B
+                # Copy of already placed landmarks in A into B
                 B <- BB
                 B[!is.na(A[,1]), ] <- A[!is.na(A[,1]), ]
                 ptsB <- project(B, specDecim)
-                # for (ii in 1:nrow(B)){ #DEBUG
-                #    spheres3d(B[ii, ], color = "orange", alpha=0.5,radius=4*grDev$spradius)
-                #}
-                #sweep(B, 2, Trans - res2$Trans2)
                 B <- project(B, specFull, trans = TRUE)
-                # for (ii in 1:nrow(B)){ #DEBUG
-                #    spheres3d(B[ii, ], color = "red", alpha=0.5,radius=4*grDev$spradius)
-                #}
+
                 # plot points/labels of B not placed before
                 vv <- index[Idx]
                 for (ii in 1:length(vv)){
@@ -187,7 +177,7 @@ DigitFixed <- function (specFull, specDecim = NULL, decim = 0.5, fixed, index = 
             # Selection of remaining landmarks (if any)
             idx_pts <- index[Idx[i-length(idxPtsTemplate)]]
             # distances full resolution mesh to automatic template landmark
-            Pt <- B[idx_pts, , drop = FALSE] #sweep(, 2, Trans, "+")
+            Pt <- B[idx_pts, , drop = FALSE]
             dd <- sqrt(colSums((sweep(specFull$vb[1:3,], 1, Pt))^2))
 
             # zoom on full resolution mesh around the selected landmark
@@ -217,7 +207,7 @@ DigitFixed <- function (specFull, specDecim = NULL, decim = 0.5, fixed, index = 
         Pt <- res$coords
 
         # calcul des distances mesh complet/ point plac?
-        dd <- sqrt(colSums((specFull$vb[1:3,] - Pt)^2))
+        dd <- sqrt(colSums((sweep(specFull$vb[1:3,], 1, Pt))^2))
 
         # zoom sur le mesh complet autour du point plac? + pla?age du point plus pr?cis
         res2 <- SetPtZoom(dd, specFull=specFull, Pt = Pt, IdxPts=idx_pts,

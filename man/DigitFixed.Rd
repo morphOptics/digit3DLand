@@ -5,9 +5,9 @@
 \title{digitFixed}
 \usage{
 DigitFixed(specFull, specDecim = NULL, decim = 0.5, fixed,
-  templateFile = NULL, idxPtsTemplate, index = 1:fixed, center = TRUE,
-  orthoplane = TRUE, percDist = 0.15, grDev = list(windowRect = rbind(c(0,
-  50, 830, 904), c(840, 50, 1672, 904)), ptSize = 1, spradius = NULL, tcex = 2))
+  index = 1:fixed, templateFile = NULL, idxPtsTemplate, orthoplane = TRUE,
+  percDist = 0.15, grDev = list(windowRect = rbind(c(0, 50, 830, 904),
+  c(840, 50, 1672, 904)), ptSize = 1, spradius = NULL, tcex = 2), ...)
 }
 \arguments{
 \item{specFull}{full resolution mesh3d object}
@@ -18,31 +18,28 @@ DigitFixed(specFull, specDecim = NULL, decim = 0.5, fixed,
 
 \item{fixed}{number of landmarks to digitalize}
 
+\item{index}{Digitalization sequence of landmarks}
+
 \item{templateFile}{template of 3D coordinates. Order of landmarks must be the
 same than the one specified in index}
 
 \item{idxPtsTemplate}{Indices of landmarks used to fit the template}
 
-\item{index}{Digitalization sequence of landmarks}
-
-\item{center}{logical whether or not centering is required}
-
 \item{orthoplane}{logical whether or not orthoplane are draw}
 
 \item{percDist}{percentage of distance around the landmark use for zooming}
 
-\item{grDev}{list with ptSize the point size, windowRect xxxx, spradius and tcex}
+\item{grDev}{list of graphical parameters with ptSize the point size, windowRect xxxx, spradius and tcex}
+
+\item{...}{additional graphical parameters to be passed to plot (color, alpha, col)}
 }
 \value{
-
+XXXX
 }
 \description{
 XXXX
 }
 \details{
 cccccc
-}
-\author{
-Remi Laffont and Nicolas Navarro
 }
 
