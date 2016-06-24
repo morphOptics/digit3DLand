@@ -26,14 +26,24 @@ project <- function (lm, mesh, sign = TRUE, trans = FALSE) {
     if (trans) data <- t(data$vb[1:3, ])
     return(data)
 }
-imputeCoords <- function(A, template, idx) {
+#' imputeCoords
+#' @description Function imputes position of landmarks given a full template
+#' and a subset of these landmarks
+#'
+#' @param landmark matrix with NA or position of landmarks on the specimen
+#' @param landmark coordinates on the template
+#'
+#' @return A matrix of imputed landmark coordinates
+#' @export
+#'
+imputeCoords <- function(A, template) {
     # defines 3 matrices of configurations:
     # - configA : points placed on the mesh
     # - configB : points within the templateFile
     # - configC : points within the templateFile and in configA
-    configA <- A[!is.na(A[,1]), , drop = FALSE]
+    configA <- A[!is.na(A[, 1]), , drop = FALSE]
     configB <- template
-    configC <- configB[idx, ]
+    configC <- configB[!is.na(A[, 1]), , drop=FALSE] #idx
 
     # transation & scaling of configA and configC
     transA <- apply(configA, 2, mean)
@@ -50,7 +60,7 @@ imputeCoords <- function(A, template, idx) {
     AB <- crossprod(AA, BB)
     sv <- svd(AB)
     sig <- sign(det(AB))
-    sv$u[,3] <- sig * sv$u[,3]
+    sv$u[, 3] <- sig * sv$u[,3]
     rot <- tcrossprod(sv$v, sv$u)
 
     # apply translation, rotation and scaling compute from configC to configB
@@ -117,23 +127,25 @@ subset.mesh3d <- function(mesh, subset, select=NULL) {
     }
 
     subMesh <- list()
-    idx_subset <- which(subset)
     if (is.null(select) || "vb" %in% select)
         subMesh$vb <- mesh$vb[, subset]
+
     if (is.null(select) || any(c("norm", "normals") %in% select))
         subMesh$normals <- mesh$normals[, subset]
+
     if (is.null(select) || any(c("face", "faces", "it") %in% select)) {
+        idx_subset <- which(subset)
         idxV <- is.element(mesh$it, idx_subset)
         idxV <- matrix(idxV, nrow=dim(mesh$it)[1], ncol=dim(mesh$it)[2])
         idx <- (colSums(idxV) == 3)
-        M <- mesh$it[, idx]
-        subMesh$it <- matrix(match(M, idx_subset), nrow=dim(M)[1], ncol=dim(M)[2])
-     }
+        subMesh$it <- matrix(match(mesh$it[, idx], idx_subset), nrow=dim(M)[1], ncol=dim(M)[2])
+    }
+
     if (is.null(select) || any(c("mat", "material") %in% select)) {
         if (!is.null(mesh$material)) {
             subMesh$material <- mesh$material
-            if (is.list(mesh$material)){ #per face color attribute
-                subMesh$material$color <- mesh$material$color[, idx]
+            if (is.list(mesh$material) && any(c("face", "faces", "it") %in% select)) {
+                subMesh$material$color <- mesh$material$color[, idx] #per vertex color attribute
             }
         } else subMesh$material <- "gray"
     }

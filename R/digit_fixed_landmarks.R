@@ -97,7 +97,7 @@ DigitFixed <- function (specFull, decim = 0.25, fixed, index = 1:fixed,
             # Place 1st points require to adjust the template if it exist otherwise take all pts
             idx_pts <- index[idxPtsTemplate[i]]
             res <- SelectPoints3d(mesh = specDecim, A = A, IdxPts = idx_pts, grDev = grDev)
-#??? why A is passed ?? no sense
+
             # zoom on full resolution mesh around the selected landmark
             res2 <- SetPtZoom(specFull=specFull, Pt = res$coords, IdxPts = idx_pts,
                               orthoplanes = orthoplanes, percDist = percDist, grDev=grDev)
@@ -114,7 +114,7 @@ DigitFixed <- function (specFull, decim = 0.25, fixed, index = 1:fixed,
             if(!is.null(templateFile) & i==length(idxPtsTemplate)){
                 # all reference points of the template are placed
                 # => impute missing landmarks
-                B <- imputeCoords(A, template = template$M, idx = idxPtsTemplate)
+                B <- imputeCoords(A, template = template$M) #idx = idxPtsTemplate
                 ptsB <- project(B, specDecim)
                 B <- project(B, specFull, trans = TRUE)
 
@@ -149,7 +149,7 @@ DigitFixed <- function (specFull, decim = 0.25, fixed, index = 1:fixed,
         if (res$isClosed) break
 
         idx_pts <- res$Idx
-        # zoom sur le mesh complet autour du point plac? + pla?age du point plus pr?cis
+        # zoom on full resolution mesh
         res2 <- SetPtZoom(specFull=specFull, Pt = res$coords, IdxPts = idx_pts,
                           orthoplanes = orthoplanes, percDist = percDist, grDev =  grDev)
         # landmark coordinate on the full resolution mesh
@@ -164,10 +164,3 @@ DigitFixed <- function (specFull, decim = 0.25, fixed, index = 1:fixed,
     }
     return(A)
 }
-
-
-
-
-
-
-
