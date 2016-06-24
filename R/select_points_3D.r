@@ -60,6 +60,8 @@ PlacePt <- function(x, y, verts, norms, mesh, start){
         int <- subset.mesh(mesh, which(Idx)==idx, select = "vb")
         # submesh 'int' may be empty then will be set as the case: undefined visibles below
         # one other trick was to put the center as the closest point int$vb <- c(0,0,0,1)
+        # sometimes submesh is bigger than one single vertex (?)
+        if (length(int$vb) > 4) int$vb <- int$vb[, 1]
     }
     # Defined visibles ----------------------------
     if (length(selecMesh$vb) == 0 || !is.matrix(selecMesh$it) || length(int$vb)==0) {
@@ -77,7 +79,7 @@ PlacePt <- function(x, y, verts, norms, mesh, start){
 }
 
 distMin <- function(x, y){
-    tmp <- sqrt(apply(sweep(x$vb, 1, y$vb)^2, 2, mean))
+    tmp <- sqrt(apply(sweep(x$vb, 1, y$vb)^2, 2, sum)) # To Remi why it was colMeans?
     return(c(min(tmp), which.min(tmp)))
 }
 
@@ -259,6 +261,10 @@ SetPtZoom <- function(dd, specFull, Trans, Pt, IdxPts=NULL, orthoplanes,
             Min <- MinT
         }
     }
+    # distMin <- function(x, y){
+    #     tmp <- sqrt(apply(sweep(x$vb, 1, y$vb)^2, 2, mean))
+    #     return(c(min(tmp), which.min(tmp)))
+    # }
 
     # center the vertices of the submesh
     Trans2 <- apply(specFull2$vb[1:3, ], 1, mean)
