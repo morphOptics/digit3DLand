@@ -239,7 +239,6 @@ SelectPoints3d<-function (mesh, modify=FALSE, A=NULL, IdxPts=NULL, grDev) {
 #' @description Zoom around the selected point on the decimated mesh
 #' @details Function zoomed on the selected point by opening a new 3d scene with
 #' the full resolution mesh within some distance of the point
-#' @param dd Distance
 #' @param specFull Full resolution mesh
 #' @param Pt Numeric vector with the xyz-coordinates of the clicked point
 #' @param IdxPts xxx
@@ -251,12 +250,12 @@ SelectPoints3d<-function (mesh, modify=FALSE, A=NULL, IdxPts=NULL, grDev) {
 #'
 #' @return xxx xxxx
 #'
-SetPtZoom <- function(dd, specFull, Pt, IdxPts=NULL, orthoplanes,
+SetPtZoom <- function(specFull, Pt, IdxPts=NULL, orthoplanes,
                       percDist=0.15, modify=FALSE, A=NULL, grDev) {
 
     if (missing(grDev)) stop("grDev missing without default value. See 'DigitFixed' ")
-
     # Conserved only vertices at some distances (eg 15%) maximum of the cliked point
+    dd <- sqrt(colSums((sweep(specFull$vb[1:3,], 1, Pt))^2))
     keep <- dd < (percDist * max(dd))
     specFull2 <- subset(specFull, subset = keep)
 
@@ -302,9 +301,10 @@ SetPtZoom <- function(dd, specFull, Pt, IdxPts=NULL, orthoplanes,
         grDev$spradius <- (1/50)*min(tmp)
     }
     res2 <- SelectPoints3d(specFull2, modify, A, IdxPts, grDev)
+    res2$coords <- res2$coords + Trans2
 
     rgl.close()
-    return(list(coords = res2$coords, sp = res2$sp, Trans2 = Trans2, tx = res2$tx))
+    return(list(coords = res2$coords, sp = res2$sp, tx = res2$tx))
 }
 
 

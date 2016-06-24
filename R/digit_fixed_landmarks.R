@@ -89,9 +89,7 @@ DigitFixed <- function (specFull, decim = 0.25, fixed, index = 1:fixed,
     if (orthoplane) orthoplanes <- DrawOrthoplanes(specDecim)
 
     # Landmark selection - A is the individual configuration matrix [k x 3]
-    A <- Adeci <- matrix(NA, fixed, 3)
-    rownames(A) <- 1:fixed
-    colnames(A) <- c("x","y","z")
+    A <- Adeci <- matrix(NA, fixed, 3, dimnames = list(1:fixed, c("x","y","z")))
     attr(A, which = "spec.name") <- deparse(substitute(specFull))
 
     Idx <- setdiff(1:fixed, index[idxPtsTemplate])
@@ -99,22 +97,19 @@ DigitFixed <- function (specFull, decim = 0.25, fixed, index = 1:fixed,
         if (i <= length(idxPtsTemplate)){
             # Place 1st points require to adjust the template if it exist otherwise take all pts
             idx_pts <- index[idxPtsTemplate[i]]
-            res <- SelectPoints3d(mesh=specDecim, A=A, IdxPts=idx_pts, grDev=grDev)
+            res <- SelectPoints3d(mesh = specDecim, A = A, IdxPts = idx_pts, grDev = grDev)
+#??? why A is passed ?? no sense
+            # zoom on full resolution mesh around the selected landmark
+            res2 <- SetPtZoom(specFull=specFull, Pt = res$coords, IdxPts = idx_pts,
+                              orthoplanes = orthoplanes, percDist = percDist, grDev=grDev)
+            # landmark coordinate on the full resolution mesh
+            A[idx_pts, ] <- res2$coords
+            # Projection of landmarks on decimated mesh for graphics
+            Adeci[idx_pts,] <- project(res2$coords, specDecim, trans = TRUE)
+
+            # Graphics
             Sp[idx_pts] <- res$sp
             Tx[idx_pts] <- res$tx
-            Pt <- res$coords
-
-            # distances full resolution mesh to template landmark
-            dd <- sqrt(colSums((sweep(specFull$vb[1:3,], 1, Pt))^2))
-
-            # zoom on full resolution mesh around the selected landmark
-            res2 <- SetPtZoom(dd, specFull=specFull, Pt=Pt, IdxPts = idx_pts,
-                              orthoplanes = orthoplanes, percDist = percDist, grDev=grDev)
-            # A coordinates
-            A[idx_pts, ] <- res2$coords + res2$Trans2
-            # Projection of landmarks on decimated mesh for graphics
-            Adeci[idx_pts,] <- project(A[idx_pts, , drop=FALSE], specDecim, trans = TRUE)
-            # plot
             grDev <- plot.landmark(Adeci[idx_pts,], d1, Sp, Tx, idx_pts, grDev, ...)
 
             if(!is.null(templateFile) & i==length(idxPtsTemplate)){
@@ -123,41 +118,38 @@ DigitFixed <- function (specFull, decim = 0.25, fixed, index = 1:fixed,
                 # - configA : points placed on the mesh
                 # - configB : points within the templateFile
                 # - configC : points within the templateFile and in configA
-                configA<-as.matrix(A[!is.na(A[,1]), ])
-                configB<-as.matrix(template$M)
-                p2<-dim(configB)[1]
-                configC<-configB[idxPtsTemplate,]
+                configA <- A[!is.na(A[,1]), , drop = FALSE]
+                configB <- template$M
+                configC <- configB[idxPtsTemplate, ]
 
                 # transation & scaling of configA and configC
-                transA<-colMeans(configA)
-                AA<-configA-matrix(transA,p1,3,byrow=TRUE)
-                scaleA<-1/sqrt(sum(AA^2))
-                AA<-AA*scaleA
-                transB<-colMeans(configC)
-                BB<-configC-matrix(transB,p1,3,byrow=TRUE)
-                scaleB<-1/sqrt(sum(BB^2))
-                BB<-BB*scaleB
+                transA <- apply(configA, 2, mean)
+                AA <- sweep(configA, 2, transA)
+                scaleA <- 1 / sqrt(sum(AA^2))
+                AA <- AA * scaleA
+
+                transB <- apply(configC, 2, mean)
+                BB <- sweep(configC, 2, transB)
+                scaleB <- 1/sqrt(sum(BB^2))
+                BB <- BB * scaleB
 
                 # rotation of configC on configA
-                sv<-svd(t(AA)%*%BB)
-                U<-sv$v
-                V<-sv$u
-                sig<-sign(det(t(AA)%*%BB))
-                V[,3]<-sig * V[,3]
-                rot<- U%*%t(V)
+                AB <- crossprod(AA, BB)
+                sv <- svd(AB)
+                sig <- sign(det(AB))
+                sv$u[,3] <- sig * sv$u[,3]
+                rot <- tcrossprod(sv$v, sv$u)
 
                 # apply translation, rotation and scaling compute from configC to configB
-                BB<-configB
-                BB<-BB-matrix(transB,p2,3,byrow=TRUE)
-                BB<-BB*scaleB
-                BB<-BB%*%rot
+                BB <- sweep(configB, 2, transB)
+                BB <- BB * scaleB
+                BB <- BB %*% rot
 
                 # scaling and translation in order configB find a size and position comparable to configA
-                BB<-BB/scaleA
-                BB<-BB+matrix(transA,p2,3,byrow=TRUE)
+                BB <- BB / scaleA
+                B <- sweep(BB, 2, transA, FUN = "+")
 
                 # Copy of already placed landmarks in A into B
-                B <- BB
                 B[!is.na(A[,1]), ] <- A[!is.na(A[,1]), ]
                 ptsB <- project(B, specDecim)
                 B <- project(B, specFull, trans = TRUE)
@@ -165,28 +157,20 @@ DigitFixed <- function (specFull, decim = 0.25, fixed, index = 1:fixed,
                 # plot points/labels of B not placed before
                 vv <- index[Idx]
                 for (ii in 1:length(vv)){
-                    #grDev <- plot.landmark(t(ptsB$vb[1:3, vv[ii]], d1, Sp, Tx, vv[ii], grDev, ...)
-                    grDev$vSp[vv[ii]] <- spheres3d(t(ptsB$vb[1:3, vv[ii]]),
-                                                 color = "blue", alpha=0.5, radius = grDev$spradius)
-                    grDev$vTx[vv[ii]] <- text3d(t(ptsB$vb[1:3, vv[ii]]),
-                                              texts=as.character(vv[ii]), col="red",
-                                              cex = grDev$tcex, adj = rep(grDev$spradius, 2))
+                    grDev <- plot.landmark(t(ptsB$vb[1:3, vv[ii]], d1, Sp=NULL, Tx=NULL,
+                                             vv[ii], grDev, color = "blue", col = "red")
                 }
             }
         } else {
             # Selection of remaining landmarks (if any)
             idx_pts <- index[Idx[i-length(idxPtsTemplate)]]
-            # distances full resolution mesh to automatic template landmark
-            Pt <- B[idx_pts, , drop = FALSE]
-            dd <- sqrt(colSums((sweep(specFull$vb[1:3,], 1, Pt))^2))
-
             # zoom on full resolution mesh around the selected landmark
-            res2 <- SetPtZoom(dd, specFull=specFull, Pt=Pt, IdxPts = idx_pts,
+            res2 <- SetPtZoom(specFull=specFull, Pt = B[idx_pts, , drop = FALSE], IdxPts = idx_pts,
                               orthoplanes = orthoplanes, percDist = percDist, grDev=grDev)
-            # A coordinates
-            A[idx_pts, ] <- res2$coords + res2$Trans2
-            # Projection of landmarks on decimated mesh for graphics
-            Adeci[idx_pts,] <- project(A[idx_pts, ,drop=FALSE], specDecim, trans = TRUE)
+            # landmark coordinate on full resolution mesh
+            A[idx_pts, ] <- res2$coords
+            # Projection of the landmark on the decimated mesh for graphics
+            Adeci[idx_pts, ] <- project(res2$coords, specDecim, trans = TRUE)
             # plot
             grDev <- plot.landmark(Adeci[idx_pts, ], d1, grDev$vSp, grDev$vTx, idx_pts, grDev, ...)
         }
@@ -196,29 +180,29 @@ DigitFixed <- function (specFull, decim = 0.25, fixed, index = 1:fixed,
     Stop <- 0
     grDev$dev <- d1
     while((Stop==0)){
-        # on place le point sur le mesh d?cim?
+        # clicks point on the decimated mesh
         res <- SelectPoints3d(mesh = specDecim, modify = TRUE, A = Adeci, grDev = grDev)
-
         if (res$isClosed) break
 
         idx_pts <- res$Idx
+        # zoom sur le mesh complet autour du point plac? + pla?age du point plus pr?cis
+        res2 <- SetPtZoom(specFull=specFull, Pt = res$coords, IdxPts = idx_pts,
+                          orthoplanes = orthoplanes, percDist = percDist, grDev =  grDev)
+        # landmark coordinate on the full resolution mesh
+        A[idx_pts, ] <- res2$coords
+        # Projection of the landmark on the decimated mesh for graphics
+        Adeci[idx_pts, ] <- project(res2$coords, specDecim, trans = TRUE)
+        # Graphics
         Sp[idx_pts] <- res$sp
         Tx[idx_pts] <- res$tx
-        Pt <- res$coords
-
-        # calcul des distances mesh complet/ point plac?
-        dd <- sqrt(colSums((sweep(specFull$vb[1:3,], 1, Pt))^2))
-
-        # zoom sur le mesh complet autour du point plac? + pla?age du point plus pr?cis
-        res2 <- SetPtZoom(dd, specFull=specFull, Pt = Pt, IdxPts=idx_pts,
-                          orthoplanes = orthoplanes, percDist = percDist, grDev =  grDev)
-        # A coordinates
-        A[idx_pts,] <- res2$coords + res2$Trans2
-        # Projection of landmarks on decimated mesh for graphics
-        Adeci[idx_pts,] <- project(t(A[idx_pts, ]), specDecim, sign=FALSE)$vb[1:3]
-        # plot
-        grDev <- plot.landmark(Adeci[idx_pts,], d1, Sp, Tx, idx_pts, grDev, ...)
-
+        grDev <- plot.landmark(Adeci[idx_pts, ], d1, Sp, Tx, idx_pts, grDev, ...)
     }
     return(A)
 }
+
+
+
+
+
+
+

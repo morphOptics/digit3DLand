@@ -34,7 +34,7 @@ project <- function (lm, mesh, sign = TRUE, trans = FALSE) {
 #' @param Tx xxxx
 #' @param idx_pts index of the landmark
 #' @param grDev xxxx
-plot.landmark <- function(landmark, d1, Sp, Tx, idx_pts, grDev, ...){
+plot.landmark <- function(landmark, d1, Sp=NULL, Tx=NULL, idx_pts, grDev, ...){
     if (length(landmark) != 3)
         stop("landmark should be a xyz point")
 
@@ -51,8 +51,8 @@ plot.landmark <- function(landmark, d1, Sp, Tx, idx_pts, grDev, ...){
     }
     # plot
     rgl.set(d1)
-    rgl.pop("shapes", Sp[idx_pts])
-    rgl.pop("shapes", Tx[idx_pts])
+    if (!is.null(Sp)) rgl.pop("shapes", Sp[idx_pts])
+    if (!is.null(Tx)) rgl.pop("shapes", Tx[idx_pts])
     grDev$vSp[idx_pts] <- spheres3d(landmark, color = color, alpha = alpha, radius = grDev$spradius)
     grDev$vTx[idx_pts] <- text3d(landmark, texts = as.character(idx_pts), col = col,
                                  cex = grDev$tcex, adj = rep(grDev$spradius, 2))
