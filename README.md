@@ -6,7 +6,7 @@
 [MorphOptics platform](http://biogeosciences.u-bourgogne.fr)
 
 [R/digit3DLand](http://nnavarro.free.fr/programs.html) is an [R](http://www.r-project.org) package to digitize 3D landmarks 
-on triangular meshes. It was developed for 
+on triangular meshes. 
 
 This tool digitizes 3D landmarks using a multiresolution approach. First, the landmark is selected roughly on a low resolution mesh 
 and then a zoom with the local area around this point is open in full resolution. The landmakrk is taken as the closest vertex on the 
