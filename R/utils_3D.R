@@ -35,24 +35,26 @@ project <- function (lm, mesh, sign = TRUE, trans = FALSE) {
 #' @param idx_pts index of the landmark
 #' @param grDev xxxx
 plot.landmark <- function(landmark, d1, Sp, Tx, idx_pts, grDev, ...){
-    if (length(landmark) != 3) stop("landmark should be a xyz point")
-    # Graphical parameters
+    if (length(landmark) != 3)
+        stop("landmark should be a xyz point")
+
+    # Graphical parameters - default
     alpha <- 0.5
     color <- "green"
     col <- "red"
-    # Process supplementary args
+    # Modify them in they are in the optional args
     argin <- list(...)
     if (length(argin)) {
-        if ("alpha" %in% names(argin)) alpha <- argin$alpha
-        if ("color" %in% names(argin)) color <- argin$color
-        if ("col" %in% names(argin)) col <- argin$col
+        if (!("alpha" %in% names(argin))) alpha <- 0.5 #argin$alpha
+        if (!("color" %in% names(argin))) color <- "green" #argin$color
+        if (!("col" %in% names(argin))) col <- "red" #argin$col
     }
     # plot
     rgl.set(d1)
     rgl.pop("shapes", Sp[idx_pts])
     rgl.pop("shapes", Tx[idx_pts])
-    grDev$vSp[idx_pts] <- spheres3d(landmark, color = color, alpha=alpha, radius=grDev$spradius)
-    grDev$vTx[idx_pts] <- text3d(landmark, texts=as.character(idx_pts), col=col,
+    grDev$vSp[idx_pts] <- spheres3d(landmark, color = color, alpha = alpha, radius = grDev$spradius)
+    grDev$vTx[idx_pts] <- text3d(landmark, texts = as.character(idx_pts), col = col,
                                  cex = grDev$tcex, adj = rep(grDev$spradius, 2))
 
     return(grDev)
