@@ -26,6 +26,46 @@ project <- function (lm, mesh, sign = TRUE, trans = FALSE) {
     if (trans) data <- t(data$vb[1:3, ])
     return(data)
 }
+imputeCoords <- function(A, template, idx) {
+    # defines 3 matrices of configurations:
+    # - configA : points placed on the mesh
+    # - configB : points within the templateFile
+    # - configC : points within the templateFile and in configA
+    configA <- A[!is.na(A[,1]), , drop = FALSE]
+    configB <- template
+    configC <- configB[idx, ]
+
+    # transation & scaling of configA and configC
+    transA <- apply(configA, 2, mean)
+    AA <- sweep(configA, 2, transA)
+    scaleA <- 1 / sqrt(sum(AA^2))
+    AA <- AA * scaleA
+
+    transB <- apply(configC, 2, mean)
+    BB <- sweep(configC, 2, transB)
+    scaleB <- 1/sqrt(sum(BB^2))
+    BB <- BB * scaleB
+
+    # rotation of configC on configA
+    AB <- crossprod(AA, BB)
+    sv <- svd(AB)
+    sig <- sign(det(AB))
+    sv$u[,3] <- sig * sv$u[,3]
+    rot <- tcrossprod(sv$v, sv$u)
+
+    # apply translation, rotation and scaling compute from configC to configB
+    BB <- sweep(configB, 2, transB)
+    BB <- BB * scaleB
+    BB <- BB %*% rot
+
+    # scaling and translation in order configB find a size and position comparable to configA
+    BB <- BB / scaleA
+    B <- sweep(BB, 2, transA, FUN = "+")
+
+    # Copy of already placed landmarks in A into B
+    B[!is.na(A[,1]), ] <- A[!is.na(A[,1]), ]
+    return(B)
+}
 #' @title plot.landmark
 #' @description Function takes a landmark and plots it onto the surface of a 3D mesh
 #' @param landmark a 3D landmark

@@ -2,10 +2,9 @@
 #' @description XXXX
 #' @details cccccc
 #' @param specFull full resolution mesh3d object
-#' @param specDecim decimated mesh3d object
-#' @param decim 0-1 number setting the amount of reduction relative to existing face number to decimate the full resolution mesh. Used for multiresolution and only if specDecim is NULL. (see \code{\link[Rvcg]{vcgQEdecim}})
+#' @param decim 0-1 number setting the amount of reduction relative to existing face number to decimate the full resolution mesh. Used for multiresolution. (see \code{\link[Rvcg]{vcgQEdecim}})
 #' @param fixed number of landmarks to digitalize
-#' @param index Digitalization sequence of landmarks
+#' @param index digitalization sequence of landmarks
 #' @param templateFile template of 3D coordinates. Order of landmarks must be the
 #' same than the one specified in index
 #' @param idxPtsTemplate Indices of landmarks used to fit the template
@@ -73,7 +72,7 @@ DigitFixed <- function (specFull, decim = 0.25, fixed, index = 1:fixed,
         grDev$spradius <- (1/50) * min(tmp)
     }
 
-    # Centering of the meshesb on the centroid of the decimated one
+    # Centering of the meshes on the centroid of the decimated one
     tmp <- scale(t(specDecim$vb[-4, ]), scale = FALSE)
     specDecim$vb[-4, ] <- t(tmp)
     specFull$vb[-4, ] <- sweep(specFull$vb[-4, ], 1, attr(tmp, which="scaled:center"))
@@ -113,51 +112,16 @@ DigitFixed <- function (specFull, decim = 0.25, fixed, index = 1:fixed,
             grDev <- plot.landmark(Adeci[idx_pts,], d1, Sp, Tx, idx_pts, grDev, ...)
 
             if(!is.null(templateFile) & i==length(idxPtsTemplate)){
-                # all reference points of the template are placed => fits the template to the mesh
-                # defines 3 matrices of configurations:
-                # - configA : points placed on the mesh
-                # - configB : points within the templateFile
-                # - configC : points within the templateFile and in configA
-                configA <- A[!is.na(A[,1]), , drop = FALSE]
-                configB <- template$M
-                configC <- configB[idxPtsTemplate, ]
-
-                # transation & scaling of configA and configC
-                transA <- apply(configA, 2, mean)
-                AA <- sweep(configA, 2, transA)
-                scaleA <- 1 / sqrt(sum(AA^2))
-                AA <- AA * scaleA
-
-                transB <- apply(configC, 2, mean)
-                BB <- sweep(configC, 2, transB)
-                scaleB <- 1/sqrt(sum(BB^2))
-                BB <- BB * scaleB
-
-                # rotation of configC on configA
-                AB <- crossprod(AA, BB)
-                sv <- svd(AB)
-                sig <- sign(det(AB))
-                sv$u[,3] <- sig * sv$u[,3]
-                rot <- tcrossprod(sv$v, sv$u)
-
-                # apply translation, rotation and scaling compute from configC to configB
-                BB <- sweep(configB, 2, transB)
-                BB <- BB * scaleB
-                BB <- BB %*% rot
-
-                # scaling and translation in order configB find a size and position comparable to configA
-                BB <- BB / scaleA
-                B <- sweep(BB, 2, transA, FUN = "+")
-
-                # Copy of already placed landmarks in A into B
-                B[!is.na(A[,1]), ] <- A[!is.na(A[,1]), ]
+                # all reference points of the template are placed
+                # => impute missing landmarks
+                B <- imputeCoords(A, template = template$M, idx = idxPtsTemplate)
                 ptsB <- project(B, specDecim)
                 B <- project(B, specFull, trans = TRUE)
 
                 # plot points/labels of B not placed before
                 vv <- index[Idx]
                 for (ii in 1:length(vv)){
-                    grDev <- plot.landmark(t(ptsB$vb[1:3, vv[ii]], d1, Sp=NULL, Tx=NULL,
+                    grDev <- plot.landmark(t(ptsB$vb[1:3, vv[ii]]), d1, Sp=NULL, Tx=NULL,
                                              vv[ii], grDev, color = "blue", col = "red")
                 }
             }
@@ -192,6 +156,7 @@ DigitFixed <- function (specFull, decim = 0.25, fixed, index = 1:fixed,
         A[idx_pts, ] <- res2$coords
         # Projection of the landmark on the decimated mesh for graphics
         Adeci[idx_pts, ] <- project(res2$coords, specDecim, trans = TRUE)
+
         # Graphics
         Sp[idx_pts] <- res$sp
         Tx[idx_pts] <- res$tx
