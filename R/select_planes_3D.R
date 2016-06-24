@@ -38,7 +38,7 @@ DrawOrthoplanes <- function(mesh) {
     for (i in 1:3) {
         if (i == 1) {
             # vect norm to plane 2-3
-            n <- ptsPlanes[2, , 3] - ptsPlanes[1, , 3] #Nico ??? why not A and 3
+            n <- ptsPlanes[2, , 3] - ptsPlanes[1, , 3]
         } else {
             # vect norm to plan 1-2 and plan 1-3
             n <- ptsPlanes[i, , 1] - A

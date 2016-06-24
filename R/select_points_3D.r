@@ -1,3 +1,16 @@
+#' @title PlacePt
+#' @description xxxx
+#'
+#' @details XXX
+#' @param x Screen x-coordinate of the clicked point
+#' @param y Screen y-coordinate of the clicked point
+#' @param verts XXX
+#' @param norms XXX
+#' @param mesh 3d mesh
+#' @param start xxxx
+#'
+#' @return list with the visible vertices and their index
+#'
 PlacePt <- function(x, y, verts, norms, mesh, start){
     # click point ----------------------------
     temp <- rgl.user2window(x = verts[, 1], y = verts[, 2],
@@ -87,132 +100,122 @@ distMin <- function(x, y){
 rgl.select2<-function (button = c("left", "middle", "right"), verts, norms, mesh,
                        modify=FALSE, A=NULL, IdxPts=NULL, grDev) {
 
-    # Fonction pour placer un point ? l'aide la souris
-    #
-    # D?finition de 3 sous-fonctions Begin(), Update() et End() qui d?terminent ce qu'il faut faire quand l'utilisateur commence ? appuyer
-    # sur le bouton gauche de la souris (Begin()), se d?place avec la souris tout en maintenant le bouton appuy? (Update()), et le rel?che (End())
+    # Defines 3 sub-fonctions Begin(), Update() et End() that determine what should be done when the user starts to click
+    # Left click -> (Begin())
+    # Move the mouse maintaining the button clicked -> (Update())
+    # stop -> (End())
 
     start <- list()
     Sp<-Tx<-idx<-Idx<-NULL
     firstTime<-TRUE
 
-    # Fonction de d?but de clic
+    # Beginning of click -------------------------------
     Begin <- function(x, y) {
-
-        # r?cup?ration d'infos sur la projection actuelle du mesh (variable globale pour utilisation dans Update())
+        # Infos on the projection of the mesh (global variable to use in Update())
         start$viewport <<- par3d("viewport")
         start$projection <<- rgl.projection()
-
-
-
-        # d?termination du point du mesh le plus proche du clic de l'utilisateur (x,y)
-        temp<-PlacePt(x,y,verts,norms,mesh,start)
-
-        visibles<<-temp$visibles
-        idx<<-temp$idx
-
-
-
-        if (modify){
-            # quand l'utilisateur en est ? l'?tape o? il peut modifier les points d?j? plac?s :
-            # il faut d?terminer quel point existant il faut modifier
-
-            # calcul rapide sur la distance : que le point soit visible ou non => l'utilisateur doit cliquer ? proximit? imm?diate du point ? d?placer pour ?viter qu'il y ait des probl?mes...
-            distPt<-sqrt(rowSums((A-matrix(visibles[idx,],dim(A)[1],dim(A)[2],byrow=TRUE))^2))
-            Idx<<-which(distPt==min(distPt))
-            IdxPts<<-Idx
-            if (firstTime){
-                # effacement du point/label ? modifier : ? faire seulement une fois...
+        # Determine the mesh vertex the closest of the user click
+        tmp <- PlacePt(x,y,verts,norms,mesh,start)
+        visibles <<- tmp$visibles
+        idx <<- tmp$idx
+        if (modify) {
+            # When the user can modified the points already placed, we need to
+            # determine which existing point is modified
+            Idx <<- which.min(sqrt(apply(sweep(A, 2, visibles[idx,])^2, 1, sum)))
+            IdxPts <<- Idx
+            if (firstTime) {
+                # remove the point and label to modify (needed only once)
                 rgl.pop("shapes",grDev$vSp[Idx])
                 rgl.pop("shapes",grDev$vTx[Idx])
                 firstTime<<-FALSE
-            }else{
-                # on efface le point/label plac? lors du pr?c?dent clic non valid? par ?chappe
+            } else {
                 rgl.pop("shapes",Sp)
                 rgl.pop("shapes",Tx)
             }
-        }else{
-            # on efface le point/label plac? lors du pr?c?dent clic non valid? par ?chappe
+        } else {
             if (!is.null(Sp)){
                 rgl.pop("shapes",Sp)
                 rgl.pop("shapes",Tx)
             }
-            Idx<<-NULL
+            Idx <<- NULL
         }
-
-        # plot du point/label
-        Sp<<-spheres3d(x=visibles[idx,1],y=visibles[idx,2],z=visibles[idx,3],alpha=0.5,radius=grDev$spradius)
-        Tx<<-text3d(x=visibles[idx,1],y=visibles[idx,2],z=visibles[idx,3],texts=as.character(IdxPts),cex=grDev$tcex)
+        # plot point/label
+        Sp <<- spheres3d(visibles[idx, ], alpha = 0.5, radius=grDev$spradius)
+        Tx <<- text3d(visibles[idx, ], texts = as.character(IdxPts),
+                      cex=grDev$tcex, adj = rep(grDev$spradius, 2))
     }
-
+    # Updating the position --------------------------
     Update <- function(x, y) {
-
-        # d?termination du point du mesh le plus proche du clic de l'utilisateur (x,y)
-        temp<-PlacePt(x,y,verts,norms,mesh,start)
-        visibles<<-temp$visibles
-        idx<<-temp$idx
-
-        # on efface le point/label plac? lors du pr?c?dent clic non valid? par ?chappe
+        temp <- PlacePt(x, y, verts, norms, mesh, start)
+        visibles <<- temp$visibles
+        idx <<- temp$idx
         if (!is.null(Sp)){
-            rgl.pop("shapes",Sp)
-            rgl.pop("shapes",Tx)
+            rgl.pop("shapes", Sp)
+            rgl.pop("shapes", Tx)
         }
-
-        # plot du point/label
-        Sp<<-spheres3d(x=visibles[idx,1],y=visibles[idx,2],z=visibles[idx,3],alpha=0.5,radius=grDev$spradius)
-        Tx<<-text3d(x=visibles[idx,1],y=visibles[idx,2],z=visibles[idx,3],texts=as.character(IdxPts),cex=grDev$tcex)
+        Sp <<- spheres3d(visibles[idx, ], alpha=0.5, radius=grDev$spradius)
+        Tx <<- text3d(visibles[idx, ], texts = as.character(IdxPts),
+                    cex=grDev$tcex, adj = rep(grDev$spradius, 2))
     }
-
+    # Finalizing ----------------------------
     End <- function(x,y){
-        # bouton de la souris rel?ch?...
+
     }
 
-    # lignes suivantes : reprises de rgl.select()
+    # Codes based on rgl.select()
     button <- match.arg(button)
     newhandler <- par3d("mouseMode")
     newhandler[button] <- "selecting"
     oldhandler <- par3d(mouseMode = newhandler)
     on.exit(par3d(mouseMode = oldhandler))
 
-    # modification de l'action d'interface quand l'utilisateur clique sur le bouton droit de la souris :
-    # avant zoom, maintenant pla?age d'un point par magn?tisme (utilisation des sous-fonctions Begin, Update et End)
-    rMul<-rgl.setMouseCallbacks(2, Begin, Update, End)
+    # Modification of the user action when the user use right click
+    # before it was a zoom, now track the surface by magnetism
+    # (use of sub-functions Begin, Update and End)
+    rMul <- rgl.setMouseCallbacks(2, Begin, Update, End)
 
-    # il faut maintenant suspendre l'?xecution du code et maintenir cette d?finition du clic droit tant que l'utilisateur n'a pas appuy? sur la touche ?chappe
-    dev<-rgl.cur()
-    while (dev==rgl.cur()){
-        if (!is.null(idx)){ # v?rification que clic pas dans le vide ou que trop peu de faces triangulaires dans le sous-mesh
-            # r?cup?ration soit des coordonn?es de position du pointeur soit le cas ?ch?ant de l'action de la touche ?chappe
+    # Executionof the code is waiting until the user press ESC
+    dev <- rgl.cur()
+    while (dev==rgl.cur()) {
+        if (!is.null(idx)) {
             result <- rgl:::rgl.selectstate()
-            # si ?chappe : on sort d'ici
+            # if ESC -> get out
             if (result$state >= rgl:::msDONE)
-            {break}
+                break
         }
     }
 
-    # si la fen?tre a ?t? ferm?e (lorsqu'on on souhaite arr?t? de modifier des points) : on sort de cette fonction
-    if (dev!=rgl.cur())
-    {
+    # if the window has been closed -> get out
+    if (dev != rgl.cur()) {
         if (modify){
-            isDone<-TRUE
-            return(list(isDone=isDone, isClosed=TRUE))
+            isDone <- TRUE
+            return(list(isDone = isDone, isClosed = TRUE))
         }
     }
 
-    # Sinon
-    # on red?finit l'action du clic droit par l'action par d?faut comme ?tant le zoom
+    # Otherwise, redefined right click by default zoom
     rgl.setMouseCallbacks(2)
-    # ligne de rgl.select :
     rgl:::rgl.setselectstate("none")
 
     # Exports
-    isDone<-TRUE
-    if (result$state == rgl:::msDONE) isDone<-FALSE
+    isDone <- TRUE
+    if (result$state == rgl:::msDONE) isDone <- FALSE
 
-    return(list(isDone=isDone, coords=visibles[idx,], sp=Sp, Idx=Idx, isClosed=FALSE, tx=Tx))
-
+    return(list(isDone=isDone, coords=visibles[idx, ], sp=Sp, Idx=Idx, isClosed=FALSE, tx=Tx))
 }
 
+
+#' @title SelectPoints3d
+#' @description Function selects a point on the surface of a 3d mesh
+#' @details A 3d point is selected using OSX:CMD+mouse, Win:?, Linux:? and
+#' may be optionally moved by not releasing CMD. Final selection is done with ESC
+#' @param mesh A 3d mesh as opened by (see \code{\link[Rvcg]{vcgPlyRead}})
+#' @param modify logical allowing to modify continuously the point by tracking the surface
+#' @param A Optional matrix that store all landmarks
+#' @param IdxPts XXX
+#' @param grDev Graphical parameters (see \code{\link[digit3DLand]{DigitFixed}})
+#'
+#' @return xxxx vvvvv
 
 SelectPoints3d<-function (mesh, modify=FALSE, A=NULL, IdxPts=NULL, grDev) {
     # Do the transpose only once
@@ -234,9 +237,6 @@ SelectPoints3d<-function (mesh, modify=FALSE, A=NULL, IdxPts=NULL, grDev) {
     return(temp)
 }
 
-
-
-#############################################################
 #' @title SetPtZoom
 #' @description Zoom around the selected point on the decimated mesh
 #' @details Function zoomed on the selected point by opening a new 3d scene with
@@ -251,8 +251,8 @@ SelectPoints3d<-function (mesh, modify=FALSE, A=NULL, IdxPts=NULL, grDev) {
 #' @param A Matrix of coordinates of landmarks
 #' @param grDev Some graphical parameters
 #'
-#' @return
-
+#' @return xxx xxxx
+#'
 SetPtZoom <- function(dd, specFull, Pt, IdxPts=NULL, orthoplanes,
                       percDist=0.15, modify=FALSE, A=NULL, grDev) {
 
@@ -287,7 +287,7 @@ SetPtZoom <- function(dd, specFull, Pt, IdxPts=NULL, orthoplanes,
         for (i in 1:3){
             # Only intersection points closed to the intersection planes
             ddi <- sqrt(colSums((t(orthoplanes$vInter[[i]])-Pt)^2))
-            keep <- ddi < (percDist*max(ddi))
+            keep <- ddi < (percDist * max(ddi))
             if (sum(keep)> 0){
                 inter <- sweep(orthoplanes$vInter[[i]][keep, ], 2, Trans2)
                 lines3d(inter, col="red", lwd=2)
@@ -300,8 +300,8 @@ SetPtZoom <- function(dd, specFull, Pt, IdxPts=NULL, orthoplanes,
 
     # Add the point on the zoomed mesh
     if (is.null(grDev$spradius)) {
-        tmp <- apply(specFull2$vb[1:3,],1,range)
-        tmp <- tmp[2,]-tmp[1,]
+        tmp <- apply(specFull2$vb[1:3,], 1, range)
+        tmp <- tmp[2,] - tmp[1,]
         grDev$spradius <- (1/50)*min(tmp)
     }
     res2 <- SelectPoints3d(specFull2, modify, A, IdxPts, grDev)

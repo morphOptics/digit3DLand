@@ -14,8 +14,7 @@
 #' @param percDist percentage of distance around the landmark use for zooming
 #' @param grDev list with ptSize the point size, windowRect xxxx, spradius and tcex
 #' @export
-#' @author Remi Laffont and Nicolas Navarro
-#' @return
+#' @return XXXX
 #'
 DigitFixed <- function (specFull, specDecim = NULL, decim = 0.5, fixed, templateFile = NULL, idxPtsTemplate,
                         index = 1:fixed, center = TRUE, orthoplane = TRUE,
@@ -175,10 +174,8 @@ DigitFixed <- function (specFull, specDecim = NULL, decim = 0.5, fixed, template
                     grDev$vSp[vv[ii]]<-spheres3d(t(ptsB$vb[1:3,vv[ii]]),color = "blue", alpha=0.5,radius=grDev$spradius)
                     grDev$vTx[vv[ii]]<-text3d(t(ptsB$vb[1:3,vv[ii]]),texts=as.character(vv[ii]),col="red",cex=grDev$tcex)
                 }
-
             }
-
-        }else{
+        } else {
             # Selection of remaining landmarks (if any)
             idx_pts <- index[Idx[i-length(idxPtsTemplate)]]
             # distances full resolution mesh to automatic template landmark
@@ -220,7 +217,7 @@ DigitFixed <- function (specFull, specDecim = NULL, decim = 0.5, fixed, template
         # A coordinates
         A[idx_pts,] <- res2$coords + res2$Trans2
         # Projection of landmarks on decimated mesh for graphics
-        Adeci[idx_pts,] <- project(t(A[idx_pts,]), specDecim, sign=FALSE)$vb[1:3]      # sign ??????????????????????
+        Adeci[idx_pts,] <- project(t(A[idx_pts,]), specDecim, sign=FALSE)$vb[1:3]
         # plot
         grDev <- plot.landmark(Adeci[idx_pts,], d1, Sp, Tx, idx_pts, grDev)
 

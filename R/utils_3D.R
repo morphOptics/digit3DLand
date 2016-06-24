@@ -52,7 +52,8 @@ plot.landmark <- function(landmark, d1, Sp, Tx, idx_pts, grDev, ...){
     rgl.pop("shapes", Sp[idx_pts])
     rgl.pop("shapes", Tx[idx_pts])
     grDev$vSp[idx_pts] <- spheres3d(landmark, color = color, alpha=alpha, radius=grDev$spradius)
-    grDev$vTx[idx_pts] <- text3d(landmark, texts=as.character(idx_pts), col=col, cex=grDev$tcex)
+    grDev$vTx[idx_pts] <- text3d(landmark, texts=as.character(idx_pts), col=col,
+                                 cex = grDev$tcex, adj = rep(grDev$spradius, 2))
 
     return(grDev)
 }

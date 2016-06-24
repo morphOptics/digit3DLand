@@ -4,12 +4,14 @@
 \alias{subset.mesh}
 \title{submesh}
 \usage{
-\method{subset}{mesh}(mesh, subset)
+\method{subset}{mesh}(mesh, subset, select = NULL)
 }
 \arguments{
 \item{mesh}{a mesh3d object}
 
 \item{subset}{expression indicating vertices to keep}
+
+\item{select}{expression indicating fields to select.}
 }
 \value{
 Return of mesh3d object
