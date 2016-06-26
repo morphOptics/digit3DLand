@@ -24,9 +24,6 @@ DigitFixed <- function (specFull, decim = 0.25, fixed, index = 1:fixed,
     if (class(specFull) != "mesh3d")
         stop("specFull must have class \"mesh3d\".")
 
-    if (is.null(specFull$material))
-        specFull$material <- "gray"
-
     if (decim != 1) {
         cat("\nMesh decimation for multiresolution view ----------\n")
         specDecim <- vcgQEdecim(specFull, percent = decim)
@@ -98,48 +95,44 @@ DigitFixed <- function (specFull, decim = 0.25, fixed, index = 1:fixed,
             idx_pts <- index[idxPtsTemplate[i]]
             res <- SelectPoints3d(mesh = specDecim, A = A, IdxPts = idx_pts, grDev = grDev)
 
-            # zoom on full resolution mesh around the selected landmark
-            res2 <- SetPtZoom(specFull=specFull, Pt = res$coords, IdxPts = idx_pts,
-                              orthoplanes = orthoplanes, percDist = percDist, grDev=grDev)
-            # landmark coordinate on the full resolution mesh
-            A[idx_pts, ] <- res2$coords
-            # Projection of landmarks on decimated mesh for graphics
-            Adeci[idx_pts,] <- project(res2$coords, specDecim, trans = TRUE)
-
-            # Graphics
+            Pt <- res$coords
             Sp[idx_pts] <- res$sp
             Tx[idx_pts] <- res$tx
-            grDev <- plot.landmark(Adeci[idx_pts,], d1, Sp, Tx, idx_pts, grDev, ...)
-
-            if(!is.null(templateFile) & i==length(idxPtsTemplate)){
-                # all reference points of the template are placed
-                # => impute missing landmarks
-                B <- imputeCoords(A, template = template$M) #idx = idxPtsTemplate
-                ptsB <- project(B, specDecim)
-                B <- project(B, specFull, trans = TRUE)
-
-                # plot points/labels of B not placed before
-                vv <- index[Idx]
-                for (ii in 1:length(vv)){
-                    grDev <- plot.landmark(t(ptsB$vb[1:3, vv[ii]]), d1, Sp=NULL, Tx=NULL,
-                                             vv[ii], grDev, color = "blue", col = "red")
-                }
-            }
+            tmpSp <- Sp
+            tmpTx <- Tx
         } else {
             # Selection of remaining landmarks (if any)
             idx_pts <- index[Idx[i-length(idxPtsTemplate)]]
-            # zoom on full resolution mesh around the selected landmark
-            res2 <- SetPtZoom(specFull=specFull, Pt = B[idx_pts, , drop = FALSE], IdxPts = idx_pts,
-                              orthoplanes = orthoplanes, percDist = percDist, grDev=grDev)
-            # landmark coordinate on full resolution mesh
-            A[idx_pts, ] <- res2$coords
-            # Projection of the landmark on the decimated mesh for graphics
-            Adeci[idx_pts, ] <- project(res2$coords, specDecim, trans = TRUE)
-            # plot
-            grDev <- plot.landmark(Adeci[idx_pts, ], d1, grDev$vSp, grDev$vTx, idx_pts, grDev, ...)
+            Pt <- B[idx_pts, , drop = FALSE]
+            tmpSp <- grDev$vSp
+            tmpTx <- grDev$vTx
+        }
+        # zoom on full resolution mesh around the selected landmark
+        res2 <- SetPtZoom(specFull=specFull, Pt = Pt, IdxPts = idx_pts,
+                          orthoplanes = orthoplanes, percDist = percDist, grDev=grDev)
+        # landmark coordinate on the full resolution mesh
+        A[idx_pts, ] <- res2$coords
+        # Projection of landmarks on decimated mesh for graphics
+        Adeci[idx_pts,] <- project(res2$coords, specDecim, trans = TRUE)
+
+        # Graphics
+        grDev <- plot.landmark(Adeci[idx_pts,], d1, tmpSp, tmpTx, idx_pts, grDev, ...)
+
+        if(!is.null(templateFile) & i==length(idxPtsTemplate)){
+            # all reference points of the template are placed
+            # => impute missing landmarks
+            B <- imputeCoords(A, template = template$M) #idx = idxPtsTemplate
+            ptsB <- project(B, specDecim)
+            B <- project(B, specFull, trans = TRUE)
+
+            # plot points/labels of B not placed before
+            vv <- index[Idx]
+            for (ii in 1:length(vv)){
+                grDev <- plot.landmark(t(ptsB$vb[1:3, vv[ii]]), d1, Sp=NULL, Tx=NULL,
+                                       vv[ii], grDev, color = "blue", col = "red")
+            }
         }
     }
-
     # Now, wait if the user want changed any landmark. Stop when the graphics is closed
     Stop <- 0
     grDev$dev <- d1
