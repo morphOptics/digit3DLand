@@ -136,9 +136,9 @@ subset.mesh3d <- function(mesh, subset, select=NULL) {
     if (is.null(select) || any(c("face", "faces", "it") %in% select)) {
         idx_subset <- which(subset)
         idxV <- is.element(mesh$it, idx_subset)
-        idxV <- matrix(idxV, nrow=dim(mesh$it)[1], ncol=dim(mesh$it)[2])
+        idxV <- matrix(idxV, nrow=3, ncol=dim(mesh$it)[2])
         idx <- (colSums(idxV) == 3)
-        subMesh$it <- matrix(match(mesh$it[, idx], idx_subset), nrow=dim(M)[1], ncol=dim(M)[2])
+        subMesh$it <- matrix(match(mesh$it[, idx], idx_subset), nrow=3, ncol=sum(idx))
     }
 
     if (is.null(select) || any(c("mat", "material") %in% select)) {
