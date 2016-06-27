@@ -108,8 +108,8 @@ plot.landmark <- function(landmark, d1, idx_pts, grDev, exist = FALSE,...){
 
     # Graphical parameters - default
     alpha <- 0.5
-    color <- "green"
-    col <- "red"
+    color <- "cyan"
+    col <- "magenta"
     # Modify them in they are in the optional args
     argin <- list(...)
     if (length(argin)) {
