@@ -302,13 +302,18 @@ SetPtZoom <- function(specFull, Pt, IdxPts=NULL, orthoplanes,
     }
     # Add the point on the zoomed mesh
       if (!is.null(IdxPts)){
-          alpha <- seq(0, 2*pi, by=pi/50)
-          x <- 10 * cos(alpha) + Pt[1] - Trans2[1]
-          y <- 10 * sin(alpha) + Pt[2] - Trans2[2]
-          z <- 10 * sin(alpha) + Pt[3] - Trans2[3]
-          lines3d(x,y,rep(Pt[3] - Trans2, length(x)), col="cyan")
-          lines3d(x,rep(Pt[2] - Trans2, length(x)),z, col="cyan")
-          lines3d(rep(Pt[3] - Trans2, length(x)),y,z, col="cyan")
+          alpha <- matrix(seq(0, 2*pi, by=pi/8), ncol=1)
+          phi <- seq(-pi/2, pi/2, by=pi/50)
+          r <- grDev$spradius * 5
+
+          circl <- function(alpha, phi, r, Pt){
+              x <- r * cos(alpha) * cos(phi) + Pt[1]
+              y <- r * sin(alpha) * cos(phi)
+              z <- r * sin(phi)
+              lines3d(x, z + Pt[2], y + Pt[3], col="lightskyblue2")
+              lines3d(x, y + Pt[2], z + Pt[3], col="lightskyblue2")
+          }
+          apply(alpha, 1, circl, phi, r, Pt - Trans2)
      #     spheres3d(Pt - Trans2, alpha=0.10, color = "lightskyblue2", radius=8*grDev$spradius)
       }
 
