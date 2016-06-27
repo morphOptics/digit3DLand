@@ -80,6 +80,10 @@ DigitFixed <- function (specFull, decim = 0.25, fixed, index = 1:fixed,
     shade3d(specDecim)
     grDev$dev <- rgl.cur()
 
+    # Rotate the scene
+    R <- rotMajorAxes(specDecim$vb[1:3, ])
+    par3d(userMatrix = R)
+
     # plot of orthogonal planes: they are initialized as major axes of the mesh
     orthoplanes <- list(vInter=NULL, vPlanes = NULL)
     if (orthoplane) orthoplanes <- DrawOrthoplanes(specDecim)
@@ -127,6 +131,7 @@ DigitFixed <- function (specFull, decim = 0.25, fixed, index = 1:fixed,
                 grDev <- plot.landmark(t(ptsB$vb[1:3, vv[ii]]), d1, vv[ii], grDev,
                                        exist = FALSE, color = "blue", col = "red")
             }
+            rgl.viewpoint(userMatrix = R)
         }
     }
     # Now, wait if the user want changed any landmark. Stop when the graphics is closed

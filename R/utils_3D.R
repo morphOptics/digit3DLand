@@ -26,6 +26,21 @@ project <- function (lm, mesh, sign = TRUE, trans = FALSE) {
     if (trans) data <- t(data$vb[1:3, ])
     return(data)
 }
+
+rotMajorAxes <- function(mat) {
+    if (dim(mat)[1] == 3) {
+        u <- svd(mat)$u
+    } else {
+        u <- svd(mat)$v
+    }
+    R <- tcrossprod(u)
+    if (det(R) < 0) {
+        u[, 3] <- -1 * u[, 3]
+        R <- tcrossprod(u)
+    }
+    return(cbind(rbind(R, 0), 1))
+}
+
 #' imputeCoords
 #' @description Function imputes position of landmarks given a full template
 #' and a subset of these landmarks

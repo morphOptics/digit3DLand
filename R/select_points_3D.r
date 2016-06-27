@@ -107,8 +107,8 @@ rgl.select2<-function (button = c("left", "middle", "right"), verts, norms, mesh
     # stop -> (End())
 
     start <- list()
-    Sp<-Tx<-idx<-Idx<-NULL
-    firstTime<-TRUE
+    Sp <- Tx <- idx <- Idx <- NULL
+    firstTime <- TRUE
 
     # Beginning of click -------------------------------
     Begin <- function(x, y) {
@@ -200,7 +200,7 @@ rgl.select2<-function (button = c("left", "middle", "right"), verts, norms, mesh
     isDone <- TRUE
     if (result$state == rgl:::msDONE) isDone <- FALSE
 
-    return(list(isDone=isDone, coords=visibles[idx, ], sp=Sp, Idx=Idx, isClosed=FALSE, tx=Tx))
+    return(list(coords=visibles[idx, ], Idx=Idx, isDone=isDone, isClosed=FALSE, sp=Sp, tx=Tx))
 }
 
 
@@ -303,6 +303,7 @@ SetPtZoom <- function(specFull, Pt, IdxPts=NULL, orthoplanes,
     }
     res2 <- SelectPoints3d(specFull2, modify, A, IdxPts, grDev)
     res2$coords <- matrix(res2$coords + Trans2, 1, 3)
+    par3d(dev=grDev$dev, userMatrix = par3d(dev=d2)$userMatrix)
 
     rgl.close()
     return(list(coords = res2$coords, sp = res2$sp, tx = res2$tx))
