@@ -100,7 +100,8 @@ distMin <- function(x, y){
 rgl.select2<-function (button = c("left", "middle", "right"), verts, norms, mesh,
                        modify=FALSE, A=NULL, IdxPts=NULL, grDev) {
 
-    # Defines 3 sub-fonctions Begin(), Update() et End() that determine what should be done when the user starts to click
+    # Defines 3 sub-fonctions Begin(), Update() et End() that determine what
+    # should be done when the user starts to click
     # Left click -> (Begin())
     # Move the mouse maintaining the button clicked -> (Update())
     # stop -> (End())
@@ -115,27 +116,27 @@ rgl.select2<-function (button = c("left", "middle", "right"), verts, norms, mesh
         start$viewport <<- par3d("viewport")
         start$projection <<- rgl.projection()
         # Determine the mesh vertex the closest of the user click
-        tmp <- PlacePt(x,y,verts,norms,mesh,start)
+        tmp <- PlacePt(x, y, verts, norms, mesh, start)
         visibles <<- tmp$visibles
         idx <<- tmp$idx
         if (modify) {
             # When the user can modified the points already placed, we need to
             # determine which existing point is modified
-            Idx <<- which.min(sqrt(apply(sweep(A, 2, visibles[idx,])^2, 1, sum)))
+            Idx <<- which.min(sqrt(apply(sweep(A, 2, visibles[idx, ])^2, 1, sum)))
             IdxPts <<- Idx
             if (firstTime) {
                 # remove the point and label to modify (needed only once)
-                rgl.pop("shapes",grDev$vSp[Idx])
-                rgl.pop("shapes",grDev$vTx[Idx])
-                firstTime<<-FALSE
+                rgl.pop("shapes", grDev$vSp[Idx])
+                rgl.pop("shapes", grDev$vTx[Idx])
+                firstTime <<- FALSE
             } else {
-                rgl.pop("shapes",Sp)
-                rgl.pop("shapes",Tx)
+                rgl.pop("shapes", Sp)
+                rgl.pop("shapes", Tx)
             }
         } else {
             if (!is.null(Sp)){
-                rgl.pop("shapes",Sp)
-                rgl.pop("shapes",Tx)
+                rgl.pop("shapes", Sp)
+                rgl.pop("shapes", Tx)
             }
             Idx <<- NULL
         }
@@ -172,7 +173,7 @@ rgl.select2<-function (button = c("left", "middle", "right"), verts, norms, mesh
     # (use of sub-functions Begin, Update and End)
     rMul <- rgl.setMouseCallbacks(2, Begin, Update, End)
 
-    # Executionof the code is waiting until the user press ESC
+    # Execution of the code is waiting until the user press ESC
     dev <- rgl.cur()
     while (dev == rgl.cur()) {
         if (!is.null(idx)) {
@@ -224,7 +225,7 @@ SelectPoints3d<-function (mesh, modify=FALSE, A=NULL, IdxPts=NULL, grDev) {
     while (StopPts==0) {
         temp <- rgl.select2(button="right", verts = verts, norms = norms, mesh = mesh,
                             modify = modify, A = A, IdxPts = IdxPts, grDev = grDev)
-        if (temp$isClosed | temp$isDone){
+        if (temp$isClosed || temp$isDone){
             if (temp$isClosed){
                 # Need to close twice because of rgl...
                 rgl.close()

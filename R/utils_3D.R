@@ -80,11 +80,14 @@ imputeCoords <- function(A, template) {
 #' @description Function takes a landmark and plots it onto the surface of a 3D mesh
 #' @param landmark a 3D landmark
 #' @param d1 a rgl scene
-#' @param Sp xxx
-#' @param Tx xxxx
 #' @param idx_pts index of the landmark
-#' @param grDev xxxx
-plot.landmark <- function(landmark, d1, Sp=NULL, Tx=NULL, idx_pts, grDev, ...){
+#' @param grDev graphical parameters spradius, ctex, and vSp, vTx for object ID
+#' in the rgl scene (as returned by \code{\link[Rvcg]{spheres3d}} or
+#' \code{\link[Rvcg]{text3d}}) and used by \code{\link[Rvcg]{rgl.pop}} to modify the landmark
+#' if it already exist in the scene
+#' @param exist logical whether or not the landmark has existing labels in the scene
+#' @param ... optional graphical arguments (color and alpha for 3dspheres, col for 3dtext)
+plot.landmark <- function(landmark, d1, idx_pts, grDev, exist = FALSE,...){
     if (length(landmark) != 3)
         stop("landmark should be a xyz point")
 
@@ -101,8 +104,10 @@ plot.landmark <- function(landmark, d1, Sp=NULL, Tx=NULL, idx_pts, grDev, ...){
     }
     # plot
     rgl.set(d1)
-    if (!is.null(Sp)) rgl.pop("shapes", Sp[idx_pts])
-    if (!is.null(Tx)) rgl.pop("shapes", Tx[idx_pts])
+    if (exist) {
+        rgl.pop("shapes", grDev$vSp[idx_pts])
+        rgl.pop("shapes", grDev$vTx[idx_pts])
+    }
     grDev$vSp[idx_pts] <- spheres3d(landmark, color = color, alpha = alpha, radius = grDev$spradius)
     grDev$vTx[idx_pts] <- text3d(landmark, texts = as.character(idx_pts), col = col,
                                  cex = grDev$tcex, adj = rep(grDev$spradius, 2))
