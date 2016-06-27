@@ -256,7 +256,7 @@ SetPtZoom <- function(specFull, Pt, IdxPts=NULL, orthoplanes,
 
     if (missing(grDev)) stop("grDev missing without default value. See 'DigitFixed' ")
     # Conserved only vertices at some distances (eg 15%) maximum of the cliked point
-    dd <- sqrt(colSums((sweep(specFull$vb[1:3,], 1, Pt))^2))
+    dd <- sqrt(apply(sweep(specFull$vb[1:3,], 1, Pt)^2, 2, sum))
     keep <- dd < (percDist * max(dd))
     specFull2 <- subset(specFull, subset = keep)
 
@@ -284,7 +284,7 @@ SetPtZoom <- function(specFull, Pt, IdxPts=NULL, orthoplanes,
     if (!is.null(orthoplanes$vInter)){
         for (i in 1:3){
             # Only intersection points closed to the intersection planes
-            ddi <- sqrt(colSums((t(orthoplanes$vInter[[i]]) - Pt)^2))
+            ddi <- sqrt(apply((t(orthoplanes$vInter[[i]]) - Pt)^2, 2, sum))
             keep <- ddi < (percDist * max(ddi))
             if (sum(keep)> 0){
                 inter <- sweep(orthoplanes$vInter[[i]][keep, ], 2, Trans2)
@@ -296,13 +296,25 @@ SetPtZoom <- function(specFull, Pt, IdxPts=NULL, orthoplanes,
     # Adjust the orientation of the zoomed mesh to correspond to the one of the decim mesh
     rgl.viewpoint(userMatrix = param3d$userMatrix)
 
-    # Add the point on the zoomed mesh
     if (is.null(grDev$spradius)) {
         tmp <- diff(apply(specFull2$vb[1:3,], 1, range))
         grDev$spradius <- (1/50)*min(tmp)
     }
+    # Add the point on the zoomed mesh
+      if (!is.null(IdxPts)){
+          alpha <- seq(0, 2*pi, by=pi/50)
+          x <- 10 * cos(alpha) + Pt[1] - Trans2[1]
+          y <- 10 * sin(alpha) + Pt[2] - Trans2[2]
+          z <- 10 * sin(alpha) + Pt[3] - Trans2[3]
+          lines3d(x,y,rep(Pt[3] - Trans2, length(x)), col="cyan")
+          lines3d(x,rep(Pt[2] - Trans2, length(x)),z, col="cyan")
+          lines3d(rep(Pt[3] - Trans2, length(x)),y,z, col="cyan")
+     #     spheres3d(Pt - Trans2, alpha=0.10, color = "lightskyblue2", radius=8*grDev$spradius)
+      }
+
     res2 <- SelectPoints3d(specFull2, modify, A, IdxPts, grDev)
     res2$coords <- matrix(res2$coords + Trans2, 1, 3)
+    # Adjust the orientation of the decimated mesh to correspond to the one of zoomed mesh
     par3d(dev=grDev$dev, userMatrix = par3d(dev=d2)$userMatrix)
 
     rgl.close()
