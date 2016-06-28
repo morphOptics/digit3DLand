@@ -51,30 +51,8 @@ PlacePt <- function(x, y, verts, norms, mesh, start){
     # Use the angle to filter out possible points
     # However this return
     if (int$quality == 0){
-        temp2 <- rgl.user2window(x = verts[, 1] + norms[, 1],
-                                 y = verts[,2] + norms[, 2],
-                                 z = verts[, 3] + norms[, 3],
-                                 projection = start$projection)
-        normals <- temp2 - temp
-
-        u <- par3d()$observer
-        alpha <- acos((t(u) %*% t(normals)) / (sqrt(rowSums(normals^2)) * sqrt(sum(u^2))))
-        Idx <- alpha > pi/2
-
-        # sometimes the angle failed (tangent ray) then took all vertices
-        if (sum(is.na(Idx))>0 || length(Idx)==0) {
-            Idx <- rep(TRUE, length(X))
-        }
-        Xs <- X[Idx]
-        Ys <- Y[Idx]
-
-        Dist <- sqrt((Xs - x)^2 + (Ys - y)^2)
-        idx <- which.min(Dist)
-        int <- subset(mesh, subset = which(Idx)==idx, select = "vb")
-        # submesh 'int' may be empty then will be set as the case: undefined visibles below
-        # one other trick was to put the center as the closest point int$vb <- c(0,0,0,1)
-        # sometimes submesh is bigger than one single vertex (?)
-        if (length(int$vb) > 4) int$vb <- int$vb[, 1]
+         idx <- which.min((X - x)^2 + (Y - y)^2)
+         int <- subset(mesh, subset = (1:dim(mesh$vb)[2])==idx, select = "vb")
     }
     # Defined visibles ----------------------------
     if (length(selecMesh$vb) == 0 || !is.matrix(selecMesh$it) || length(int$vb)==0) {
