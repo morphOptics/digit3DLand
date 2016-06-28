@@ -137,7 +137,7 @@ plot.landmark <- function(landmark, d1, idx_pts, grDev, exist = FALSE,...){
 #' @param select expression indicating fields to select.
 #' @return Return of mesh3d object
 #' @export
-subset.mesh3d <- function(mesh, subset, select=NULL) {
+subset.mesh3d <- function(mesh, subset, select=c("vb", "normals", "it", "material")) {
 
     if (missing(subset)) {
         stop("'subset' not defined and without default value")
@@ -147,13 +147,13 @@ subset.mesh3d <- function(mesh, subset, select=NULL) {
     }
 
     subMesh <- list()
-    if (is.null(select) || "vb" %in% select)
+    if ("vb" %in% select)
         subMesh$vb <- mesh$vb[, subset]
 
-    if (is.null(select) || any(c("norm", "normals") %in% select))
+    if (any(c("norm", "normals") %in% select))
         subMesh$normals <- mesh$normals[, subset]
 
-    if (is.null(select) || any(c("face", "faces", "it") %in% select)) {
+    if (any(c("face", "faces", "it") %in% select)) {
         idx_subset <- which(subset)
         idxV <- is.element(mesh$it, idx_subset)
         idxV <- matrix(idxV, nrow=3, ncol=dim(mesh$it)[2])
@@ -161,7 +161,7 @@ subset.mesh3d <- function(mesh, subset, select=NULL) {
         subMesh$it <- matrix(match(mesh$it[, idx], idx_subset), nrow=3, ncol=sum(idx))
     }
 
-    if (is.null(select) || any(c("mat", "material") %in% select)) {
+    if (any(c("mat", "material") %in% select)) {
         if (!is.null(mesh$material)) {
             subMesh$material <- mesh$material
             if (is.list(mesh$material) && any(c("face", "faces", "it") %in% select)) {
