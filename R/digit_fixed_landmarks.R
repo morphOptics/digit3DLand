@@ -21,8 +21,9 @@ DigitFixed <- function (specFull, decim = 0.25, fixed, index = 1:fixed,
                         grDev = list(windowRect = rbind(c(0,50,830,904), c(840,50,1672,904)),
                                      ptSize = 1, spradius = NULL, tcex=2), ...) {
 
-    if (class(specFull) != "mesh3d")
+    if (!(any(class(specFull) == "mesh3d")))
         stop("specFull must have class \"mesh3d\".")
+    spec.name <- deparse(substitute(specFull))
 
     if (decim != 1) {
         cat("\nMesh decimation for multiresolution view ----------\n")
@@ -90,7 +91,7 @@ DigitFixed <- function (specFull, decim = 0.25, fixed, index = 1:fixed,
 
     # Landmark selection - A is the individual configuration matrix [k x 3]
     A <- Adeci <- matrix(NA, fixed, 3, dimnames = list(1:fixed, c("x","y","z")))
-    attr(A, which = "spec.name") <- deparse(substitute(specFull))
+    attr(A, which = "spec.name") <- spec.name
 
     Idx <- setdiff(1:fixed, index[idxPtsTemplate])
     for (i in 1:fixed){
