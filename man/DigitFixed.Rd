@@ -4,21 +4,19 @@
 \alias{DigitFixed}
 \title{digitFixed}
 \usage{
-DigitFixed(specFull, specDecim = NULL, decim = 0.5, fixed,
-  index = 1:fixed, templateFile = NULL, idxPtsTemplate, orthoplane = TRUE,
-  percDist = 0.15, grDev = list(windowRect = rbind(c(0, 50, 830, 904),
-  c(840, 50, 1672, 904)), ptSize = 1, spradius = NULL, tcex = 2), ...)
+DigitFixed(specFull, decim = 0.25, fixed, index = 1:fixed,
+  templateFile = NULL, idxPtsTemplate, orthoplane = TRUE, percDist = 0.15,
+  grDev = list(windowRect = rbind(c(0, 50, 830, 904), c(840, 50, 1672, 904)),
+  ptSize = 1, spradius = NULL, tcex = 2), ...)
 }
 \arguments{
 \item{specFull}{full resolution mesh3d object}
 
-\item{specDecim}{decimated mesh3d object}
-
-\item{decim}{0-1 number setting the amount of reduction relative to existing face number to decimate the full resolution mesh. Used for multiresolution and only if specDecim is NULL. See vcg:::vcgQEdecim}
+\item{decim}{0-1 number setting the amount of reduction relative to existing face number to decimate the full resolution mesh. Used for multiresolution. (see \code{\link[Rvcg]{vcgQEdecim}})}
 
 \item{fixed}{number of landmarks to digitalize}
 
-\item{index}{Digitalization sequence of landmarks}
+\item{index}{digitalization sequence of landmarks}
 
 \item{templateFile}{template of 3D coordinates. Order of landmarks must be the
 same than the one specified in index}
@@ -42,4 +40,3 @@ XXXX
 \details{
 cccccc
 }
-

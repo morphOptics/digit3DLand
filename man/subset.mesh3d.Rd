@@ -4,7 +4,8 @@
 \alias{subset.mesh3d}
 \title{subset.mesh3d}
 \usage{
-\method{subset}{mesh3d}(mesh, subset, select = NULL)
+\method{subset}{mesh3d}(mesh, subset, select = c("vb", "normals", "it",
+  "material"))
 }
 \arguments{
 \item{mesh}{a mesh3d object}
@@ -22,4 +23,3 @@ Extracts a submesh
 \details{
 Function build a submesh from the mesh3d object according to some kept vertices
 }
-

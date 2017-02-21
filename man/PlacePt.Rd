@@ -28,4 +28,3 @@ xxxx
 \details{
 XXX
 }
-

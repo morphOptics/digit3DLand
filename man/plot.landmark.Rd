@@ -4,22 +4,24 @@
 \alias{plot.landmark}
 \title{plot.landmark}
 \usage{
-plot.landmark(landmark, d1, Sp, Tx, idx_pts, grDev, ...)
+plot.landmark(landmark, d1, idx_pts, grDev, exist = FALSE, ...)
 }
 \arguments{
 \item{landmark}{a 3D landmark}
 
 \item{d1}{a rgl scene}
 
-\item{Sp}{xxx}
-
-\item{Tx}{xxxx}
-
 \item{idx_pts}{index of the landmark}
 
-\item{grDev}{xxxx}
+\item{grDev}{graphical parameters spradius, ctex, and vSp, vTx for object ID
+in the rgl scene (as returned by \code{\link[Rvcg]{spheres3d}} or
+\code{\link[Rvcg]{text3d}}) and used by \code{\link[Rvcg]{rgl.pop}} to modify the landmark
+if it already exist in the scene}
+
+\item{exist}{logical whether or not the landmark has existing labels in the scene}
+
+\item{...}{optional graphical arguments (color and alpha for 3dspheres, col for 3dtext)}
 }
 \description{
 Function takes a landmark and plots it onto the surface of a 3D mesh
 }
-

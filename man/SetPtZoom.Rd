@@ -4,12 +4,10 @@
 \alias{SetPtZoom}
 \title{SetPtZoom}
 \usage{
-SetPtZoom(dd, specFull, Pt, IdxPts = NULL, orthoplanes, percDist = 0.15,
+SetPtZoom(specFull, Pt, IdxPts = NULL, orthoplanes, percDist = 0.15,
   modify = FALSE, A = NULL, grDev)
 }
 \arguments{
-\item{dd}{Distance}
-
 \item{specFull}{Full resolution mesh}
 
 \item{Pt}{Numeric vector with the xyz-coordinates of the clicked point}
@@ -36,4 +34,3 @@ Zoom around the selected point on the decimated mesh
 Function zoomed on the selected point by opening a new 3d scene with
 the full resolution mesh within some distance of the point
 }
-

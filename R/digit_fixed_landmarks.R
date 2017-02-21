@@ -17,7 +17,7 @@
 #'
 DigitFixed <- function (specFull, decim = 0.25, fixed, index = 1:fixed,
                         templateFile = NULL, idxPtsTemplate,
-                        orthoplane = TRUE, percDist = 0.15,
+                        orthoplane = FALSE, percDist = 0.15,
                         grDev = list(windowRect = rbind(c(0,50,830,904), c(840,50,1672,904)),
                                      ptSize = 1, spradius = NULL, tcex=2), ...) {
 
@@ -28,6 +28,7 @@ DigitFixed <- function (specFull, decim = 0.25, fixed, index = 1:fixed,
     if (decim != 1) {
         cat("\nMesh decimation for multiresolution view ----------\n")
         specDecim <- vcgQEdecim(specFull, percent = decim)
+        specDecim <- vcgUpdateNormals(specDecim, silent = TRUE)
         cat("---------------------------------------------------\n")
     } else specDecim <- specFull
 

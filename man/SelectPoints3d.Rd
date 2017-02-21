@@ -27,4 +27,3 @@ Function selects a point on the surface of a 3d mesh
 A 3d point is selected using OSX:CMD+mouse, Win:?, Linux:? and
 may be optionally moved by not releasing CMD. Final selection is done with ESC
 }
-
