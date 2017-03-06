@@ -5,9 +5,9 @@
 \title{digitFixed}
 \usage{
 DigitFixed(specFull, decim = 0.25, fixed, index = 1:fixed,
-  templateFile = NULL, idxPtsTemplate, orthoplane = TRUE, percDist = 0.15,
-  grDev = list(windowRect = rbind(c(0, 50, 830, 904), c(840, 50, 1672, 904)),
-  ptSize = 1, spradius = NULL, tcex = 2), ...)
+  templateFile = NULL, idxPtsTemplate, orthoplane = FALSE,
+  percDist = 0.15, grDev = list(windowRect = rbind(c(0, 50, 830, 904),
+  c(840, 50, 1672, 904)), ptSize = 1, spradius = NULL, tcex = 2), ...)
 }
 \arguments{
 \item{specFull}{full resolution mesh3d object}
