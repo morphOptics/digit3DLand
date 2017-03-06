@@ -38,7 +38,9 @@ rotMajorAxes <- function(mat) {
         u[, 3] <- -1 * u[, 3]
         R <- tcrossprod(u)
     }
-    return(cbind(rbind(R, 0), 1))
+    tmp<-diag(rep(1,4))
+    tmp[1:3,1:3]<-R
+    return(tmp)
 }
 
 #' imputeCoords
