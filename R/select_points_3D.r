@@ -98,11 +98,12 @@ rgl.select2<-function (button = c("left", "middle", "right"), verts, norms, mesh
         visibles <<- tmp$visibles
         idx <<- tmp$idx
         if (modify) {
-            # When the user can modified the points already placed, we need to
-            # determine which existing point is modified
-            Idx <<- which.min(sqrt(apply(sweep(A, 2, visibles[idx, ])^2, 1, sum)))
-            IdxPts <<- Idx
             if (firstTime) {
+                # When the user can modified the points already placed, we need to
+                # determine which existing point is modified
+                Idx <<- which.min(sqrt(apply(sweep(A, 2, visibles[idx, ])^2, 1, sum)))
+                IdxPts <<- Idx
+
                 # remove the point and label to modify (needed only once)
                 rgl.pop("shapes", grDev$vSp[Idx])
                 rgl.pop("shapes", grDev$vTx[Idx])
