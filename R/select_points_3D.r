@@ -55,11 +55,11 @@ PlacePt <- function(x, y, verts, norms, mesh, start){
          int <- subset(mesh, subset = (1:dim(mesh$vb)[2])==idx, select = "vb")
     }
     # Defined visibles ----------------------------
-    if (length(selecMesh$vb) == 0 || !is.matrix(selecMesh$it) || length(int$vb)==0) {
+    if (length(selecMesh$vb) == 0 || !is.matrix(selecMesh$it) || length(int$vb)==0 || attr(try(meshintegrity(selecMesh,facecheck=TRUE),silent=TRUE),"class")=="try-error" ) {
         # clic in empty zone or only 1 face or empty submesh -> undefined visibles
         visibles <- idx <-NULL
     } else {
-        isol <- vcgIsolated(selecMesh, split=TRUE)
+        isol <- vcgIsolated(selecMesh, split=TRUE,silent=TRUE)
         vd <- lapply(isol, distMin, int)
         vd <- matrix(unlist(vd), length(isol), 2, byrow=TRUE)
         idx <- which.min(vd[, 1])
@@ -240,7 +240,7 @@ SetPtZoom <- function(specFull, Pt, IdxPts=NULL, orthoplanes,
     specFull2 <- subset(specFull, subset = keep)
 
     # if the submesh contains several isolated meshes, we keep the closest to the clicked point
-    tmp <- vcgIsolated(specFull2, split = TRUE)
+    tmp <- vcgIsolated(specFull2, split = TRUE, silent=TRUE)
     vd <- lapply(tmp, distMin, list(vb = matrix(c(Pt, 1), 4, 1)))
     vd <- matrix(unlist(vd), length(tmp), 2, byrow=TRUE)
     specFull2 <- tmp[[which.min(vd[, 1])]]
