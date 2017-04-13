@@ -1,31 +1,54 @@
 DrawOrthoplanes <- function(mesh) {
+
     if (class(mesh) != "mesh3d") stop("mesh should be an object \"mesh3d\".")
+
     # centering of vertex coordinates
     pts <- t(mesh$vb[1:3, ])
     A <- apply(pts, 2, mean)
     pts <- sweep(pts, 2, A)
+
     # Planes
     sv <- svd(crossprod(pts))
 
     # Compute and draw the intersection mesh/planes
     ptsPlanes <- array(NA, c(3,3,3))
-    Pl <- pl <- list()
+    vInter<- list()
     for (i in 1:3){
+
         # plane PC2-PC3 when i=1, PC1-PC3 when i=2, PC1-PC2 when i=3
         ci <- setdiff(1:3, i)
-        # intersection planes/mesh
-        inter <- meshPlaneIntersect(mesh, A, A+sv$u[,ci[1]], A+sv$u[,ci[2]])
-        # Centering
-        int <- sweep(inter, 2, A)
-        # Rotation in order that the intersection pts lied in the plan
-        int2 <- (int %*% svd(crossprod(int))$u)[, 1:2]
-        # Order according to the angle of each vector (needed before to used lines3d())
-        idx <- order(Arg(int2[,1] + 1i * int2[,2]))
-        inter <- inter[idx, ]
+
+        # planes/mesh intersection
+        tmp <- meshPlaneIntersect2(mesh, A, A+sv$u[,ci[1]], A+sv$u[,ci[2]])
+        inter<- tmp[[1]]
+        edgesTot<-tmp[[2]]
+        edges_in_cplx<-edgesTot[,1]+1i*edgesTot[,2] # expression of edges of intersected faces in a complex form for facility
+        faces_in<-edgesTot[,3] # intersected faces
+        is_bd<-as.logical(edgesTot[,4]) # indicates if edges of the mesh of intersection are or not border edges
+
+        # Sort the intersection points.
+        # As returned by meshPlaneIntersect2, the intersection points aren't sorted in a way that a use of lines3d
+        # will give proper links among those points.
+        # The Morpho:::sortCurve function could be used in this aim, but it stays an approximation in our case on how points
+        # must be linked in that sense that the sorting is based only on a proximity among points computed from their coordinates.
+        # The connectivity of the mesh faces on which intersection points lay on are not taking into account in this sorting.
+        # The sortCurveMesh.cpp function uses this info of face connectivity to determine the point sorting.
+        out <- .Call("sortCurveMesh", edges_in_cplx,faces_in,is_bd)
+
+        # Convert "out" into a list where each element correpond to a submesh with at each time a vector indicating the order
+        # of points. A NA value will be append at the end of each vector to allow the plot of lines 3d in a single pass (NA
+        # value not being linked by lines3d)
+        Lve<-list()
+        for (j in 1:max(out[[2]])){
+            Lve[[j]]<-c(which(out[[2]]==j)[order(out[[1]][out[[2]]==j])],NA)
+        }
+        inter<-inter[unlist(Lve),]
+
         # plot of the intersection
-        Pl[[i]] <- lines3d(inter, col = "red", lwd=2)
+        lines3d(inter, col = "red", lwd=2)
+
         # stockage
-        #vInter[[i]] <- inter
+        vInter[[i]]<-inter
         ptsPlanes[, , i] <- rbind(A, A+sv$u[,ci[1]], A+sv$u[,ci[2]])
         # for each plane, contains 3 points in the plane (needed just after)
     }
@@ -44,18 +67,20 @@ DrawOrthoplanes <- function(mesh) {
             n <- ptsPlanes[i, , 1] - A
         }
         d <- -t(n) %*% A
-        pl[[i]] <- planes3d(n[1], n[2], n[3], d, alpha = 0.7, col="cyan")
+        planes3d(n[1], n[2], n[3], d, alpha = 0.7, col="cyan")
     }
+
     # User interaction: manual rotation of the mesh (the orthogonal planes being fixed)
     # until the wanted orientation
-    return(RotateMeshPlane3d(mesh, planes = ptsPlanes, Pl=Pl, pl=pl))
+    return(RotateMeshPlane3d(mesh, planes = ptsPlanes, vInter))
 }
 
-RotateMeshPlane3d <- function(mesh, planes, Pl, pl) {
+#############################################################
+RotateMeshPlane3d <- function(mesh, planes, vInter) {
     Stop <- 0
     # stop when the rotation is validated by ESC
     while (Stop==0) {
-        temp <- selectPlanes(button="right", mesh=mesh, planes=planes, Pl=Pl, pl=pl)
+        temp <- selectPlanes(button="right", mesh=mesh, planes=planes, vInter=vInter)
         if (temp$isDone){
             # because of rgl.... need to close twice the window
             if (temp$isClosed){
@@ -68,25 +93,27 @@ RotateMeshPlane3d <- function(mesh, planes, Pl, pl) {
 }
 
 #############################################################
-selectPlanes<-function (button = c("left", "middle", "right"), mesh, planes,
-                        Pl=NULL, pl=NULL, dev = rgl.cur(), uplanes=NULL) {
+selectPlanes<-function (button = c("left", "middle", "right"), mesh, planes, vInter) {
 
-    # R?cup?ration de la fonction mouseTrackball() de rgl (via les binary) utilis?e pour effectuer la rotation manuel du mesh
-    # compl?t?e ici pour qu'ne fonction de cette rotation (via le bouton droit de la souris), les plans orthogonaux restent "fixes" par rapport ? cette rotation.
-    # En r?alit?, c'est bien le mesh qui reste fixe en coordonn?es absolues (car avec le mesh ,les axes tournent), et ce sont des nouveaux plans qui sont calcul?s ? chaque fois.
+    # Re-use of the rgl:::mouseTrackball (from binary) normally used to manually rotate the mesh, and disorted here
+    # so that depending on this manual rotation (through the mouse right button), plane(s) seem to stay fix relative
+    # to this rotation (which will affect the mesh). In true, and even for the initial rgl:::mouseTrackball function,
+    # the mesh stays fix in that its absolute coordinates don't change (axes rotate with the mesh), whereas the new
+    # plane coordinates have to be updated at each user interaction.
 
-    # initialisations r?cup?r?es de mouseTrackball()
+    # initializations: re-used from rgl:::mouseTrackball
     width <- height <- rotBase <- NULL
     userMatrix <- list()
     cur <- rgl.cur()
 
-    vInter<-NULL
-    vPlanes<-NULL
+    # our initializations
+    is.complete<-TRUE
+    uplanes<-NULL
 
-    # fonctions utilitaires r?cup?r?es de mouseTrackball()
+    # useful function from rgl:::mouseTrackball
     screenToVector <- function(x, y) {
-        # doit permettre ? partir d'un point 2D ?cran de calculer un vecteur
-        # entre 2 positions successives de la souris, fonction appel?e 2 fois, et les deux vecteurs permettent de d?terminer un angle et un axe de rotation 3D
+        # Seems to compute a vector between 2 successive mouse positions
+        # Called twice in the process, and the 2 vectors allow then to compute an angle and a 3D rotation axis.
         radius <- max(width, height)/2
         centre <- c(width, height)/2
         pt <- (c(x, y) - centre)/radius
@@ -102,144 +129,172 @@ selectPlanes<-function (button = c("left", "middle", "right"), mesh, planes,
         return (c(pt, z))
     }
 
-    # fonction de d?but de clic (droit)
+    # function called when the right mouse button starts to be pressed
     trackballBegin <- function(x, y) {
 
-        # lignes inchang?es de mouseTrackball()
-        vp <- par3d("viewport")
-        width <<- vp[3]
-        height <<- vp[4]
-        cur <<- rgl.cur()
-        for (i in dev) {
-            if (inherits(try(rgl.set(i, TRUE)), "try-error")) dev <<- dev[dev != i]
-            else userMatrix[[i]] <<- par3d("userMatrix")
-        }
-        rgl.set(cur, TRUE)
-        rotBase <<- screenToVector(x, height - y)
+        if(is.complete){
+            # test needed when computations for plane intersections are long: in this case, a first held right click can start
+            # the intersection computations in trackballUpdate(), but before the end of those computations, we need to prevent
+            # another run of computation with a second held right click. Else, a first plane could be computed depending to a
+            # first rotatio, and a second one could depend from another rotation. This test prevent to begin new computations
+            # before the actual ones are finished.
 
-        # initialisations rajout?es pour les plans orthogonaux
-        if (is.null(uplanes)){
-            # premi?re rotation effectu? : on initialise uplanes (updated planes) ? planes initial (array contenant pour chaque plan des points contenus dans le plan le long de 2 vecteurs orthogonaux)
-            uplanes<<-planes
-            # vInter et vPlanes contiendront les donn?es n?cessaires pour dessiner les plans et intersections
-            vInter<<-list()
-            vPlanes<<-matrix(NA,3,4)
-        }else{
-            # ni?me rotation effectu? : planes est initialis? ? uplanes (derni?re rotation effectu?e)
-            planes<<-uplanes
-        }
-    }
+            # unchanged lines from rgl:::mouseTrackball()
+            vp <- par3d("viewport")
+            width <<- vp[3]
+            height <<- vp[4]
+            cur <<- rgl.cur()
+            for (i in dev) {
+                if (inherits(try(rgl.set(i, TRUE)), "try-error")) dev <<- dev[dev != i]
+                else userMatrix[[i]] <<- par3d("userMatrix")
+            }
+            rgl.set(cur, TRUE)
+            rotBase <<- screenToVector(x, height - y)
 
-    # fonction de maintien du clic (droit)
-    trackballUpdate <- function(x,y) {
-
-        # lignes inchang?es de mouseTrackball()
-        rotCurrent <- screenToVector(x, height - y)
-        angle <- angle(rotBase, rotCurrent) # d?termination de l'angle...
-        axis <- xprod(rotBase, rotCurrent)  # ...et de l'axe de rotation
-
-        mouseMatrix <- rotationMatrix(angle, axis[1], axis[2], axis[3]) # calcul de la matrice de rotation correspondante
-        for (i in dev) {
-            if (inherits(try(rgl.set(i, TRUE)), "try-error")) dev <<- dev[dev != i]
-            else par3d(userMatrix = mouseMatrix %*% userMatrix[[i]]) # en fait ce qui tourne : c'est le point de vue utilisateur (userMatrix) par la matrice de rotation pr?c?dente
-            # => les coordonn?es r?elles du mesh restent inchang?es car les axes tournent en m?me temps
-        }
-        rgl.set(cur, TRUE)
-
-        # lignes rajout?es
-
-        # mouseMatrix affectant la userMatrix, je suppose donc que les coordonn?es d'axe ne sont pas en coordonn?es absolues du mesh, mais ont d?j? subit une partie du traitement des coordonn?es 3D (cf aide de par3d())
-        # Plus pr?cis?ment, on doit en ?tre ? l'?tape o? les coordonn?es sont multipli?es par userMatrix
-        # Si on reprend les ?tapes :
-        # - coordonn?es absolues mesh : vector (x,y,z)
-        # - v = (x,y,z,1)
-        # - v'=v*scale : scale d?pendant de scaling des axes, pas d'importance ici...
-        # - v''= userMatrix*v*scale
-        # donc :
-        # axis = userMatrix%*%axis_abs_coord
-        # inv(userMatrix)%*%axis = axis_abs_coord
-        axis<-c(axis,1)
-        axis<-solve(par3d("userMatrix"))%*%axis
-        axis<-axis[1:3]
-        # d?termination de la matrice de rotation ? appliquer aux coordonn?es absolues (axis modifi?, angle restant le m?me)
-        uMat <- rotationMatrix(angle, axis[1], axis[2], axis[3])
-
-        # boucle pour d?terminer et dessiner les nouvelles intersections
-        for (i in 1:3){
-
-            # plan consid?r? : plan PC2-PC3 si i=1, PC1-PC3 si i=2, PC1-PC2 si i=3
-            ci<-setdiff(1:3,i)
-
-            # extraction des valeurs du plan consid?r?
-            A<-p1<-planes[1,,i]
-            p2<-planes[2,,i]
-            p3<-planes[3,,i]
-
-            # calcul des vecteurs du plan
-            p2<-p2-p1
-            p3<-p3-p1
-
-            # rotation par uMat
-            p2<-c(t(p2)%*%uMat[1:3,1:3])+p1
-            p3<-c(t(p3)%*%uMat[1:3,1:3])+p1
-
-            # stcokage pour utilisation ult?rieure d'un nouvel appel de la fonction
-            uplanes[,,i]<<-rbind(p1,p2,p3)
-
-            # intersection plan/mesh
-            inter<- meshPlaneIntersect(mesh,p1,p2,p3)
-
-            # les points fournis par meshPlane Intersect ne sont pas tri?s (pas g?nant quand on utilise points3d(), mais ?a l'est avec lines3d()...)
-            # => on trie les points en fonction de l'angle qu'ils forment dans le plan de l'intersection
-            # centrage des points
-            int<-inter-matrix(A,nrow=dim(inter)[1],ncol=3,byrow=TRUE)
-            # rotation pour que les points d'intersection soient dans un plan
-            int2<-(int%*%svd(t(int)%*%int)$u)[,1:2]
-            # d?termination du rang de l'angle form? par chaque vecteur point d'intersection (via les complexes)
-            idx<-order(Arg(int2[,1]+1i*int2[,2]))
-            # tri des points
-            inter<-inter[idx,]
-
-            # effacement des plans et intersections pr?c?dents
-            rgl.pop("shapes",Pl[[i]])
-            rgl.pop("shapes",pl[[i]])
-
-            # plot des nouvelles intersections et stockage
-            Pl[[i]]<<-lines3d(inter,col="red",lwd=2)
-            vInter[[i]]<<-inter
-
-        }
-
-        # boucle pour dessiner les plans
-        for (i in 1:3){
-            A <- uplanes[1,,1]
-            if (i==1){
-                # vect norm ? plan 2-3
-                n <- uplanes[2,,3] - uplanes[1,,3]
-            } else {
-                n <- uplanes[i,,1] - A
+            # added initializations for plane(s)
+            if (is.null(uplanes)){
+                # 1st rotation done: "uplanes" is initialized to initial "planes" (array with 3 points lying in the plane along 2 orthogonal vectors lying alos in the plane)
+                uplanes<<-planes
+                # "vInter" initialization which will contain necessary data for plane plottings
+                vInter<<-list()
+            }else{
+                # nth rotation done : "planes" is initialized to "uplanes" (the last done rotation)
+                planes<<-uplanes
             }
 
-            # calcul des param?tres du plan
-            d<- -t(n)%*%A
-            # plot des nouveaux plans et stockage
-            pl[[i]]<<-planes3d(n[1],n[2],n[3],d,alpha=0.7,col="cyan")
-            vPlanes[i,]<<-c(n[1:3],d)
         }
+
     }
 
-    # lignes suivantes : reprises de rgl.select()
+    # function called when the press of the right mouse button is held
+    trackballUpdate <- function(x,y) {
+
+        if (is.complete){
+
+            is.complete<<-FALSE
+
+            # unchanged lines from rgl:::mouseTrackball()
+            rotCurrent <- screenToVector(x, height - y)
+            angle <- angle(rotBase, rotCurrent) # rotation angle computation...
+            axis <- xprod(rotBase, rotCurrent)  # ...& 3D rotation axis
+
+            mouseMatrix <- rotationMatrix(angle, axis[1], axis[2], axis[3]) # corresponding rotation matrix
+            for (i in dev) {
+                if (inherits(try(rgl.set(i, TRUE)), "try-error")) dev <<- dev[dev != i]
+                else par3d(userMatrix = mouseMatrix %*% userMatrix[[i]]) # actually, the user point of view is rotated (userMatrix) whith the previous rotation matrix
+                # => absolute mesh coordinates stay unchanged
+            }
+            rgl.set(cur, TRUE)
+
+            # added lines
+
+            # Because "mouseMatrix" affects "userMatrix", it seems that the axis coordinates aren't expressed in mesh absolute coordinates, but were already
+            # partially processed with the 3D coordinate treatment (cf help for par3d()).
+            # More precisely, we should be at the step where coordinates ae multiplied by "userMatrix".
+            # To sum up the different steps:
+            # - mesh absolute coordinates: vector (x,y,z)
+            # - v = (x,y,z,1)
+            # - v'=v*scale : scale depending from axis scaling: don't care about this here...
+            # - v''= userMatrix*v*scale
+            # so:
+            # axis = userMatrix%*%axis_abs_coord
+            # inv(userMatrix)%*%axis = axis_abs_coord
+            # Express the axis rotation into absolute coordinates is needed to rotates the plane(s)
+
+            axis<-c(axis,1)
+            axis<-solve(par3d("userMatrix"))%*%axis
+            axis<-axis[1:3]
+
+            # computation of rotation matrix needed to rotate absolute coordinates (only the rotation axis needs this transformation, rotation angle kepping the same)
+            uMat <- rotationMatrix(angle, axis[1], axis[2], axis[3])
+
+            # delete all previous lines and planes (if any) for plot updating
+            Ids<-rgl.ids()
+            rgl.pop("shapes",Ids[Ids[,2]=="linestrip",1])
+            rgl.pop("shapes",Ids[Ids[,2]=="planes",1])
+
+            # loop to update and plot the mesh/plane intersections
+            for (i in 1:3){
+
+                # plane PC2-PC3 when i=1, PC1-PC3 when i=2, PC1-PC2 when i=3
+                ci<-setdiff(1:3,i)
+
+                # extract points coordinates from given plane
+                A<-p1<-planes[1,,i]
+                p2<-planes[2,,i]
+                p3<-planes[3,,i]
+
+                # compute plane vectors
+                p2<-p2-p1
+                p3<-p3-p1
+
+                # uMat rotation
+                p2<-c(t(p2)%*%uMat[1:3,1:3])+p1
+                p3<-c(t(p3)%*%uMat[1:3,1:3])+p1
+
+                # storage for later use in a next function call
+                uplanes[,,i]<<-rbind(p1,p2,p3)
+
+                # planes/mesh intersection
+                tmp <- meshPlaneIntersect2(mesh, p1,p2,p3)
+                inter<- tmp[[1]]
+                edgesTot<-tmp[[2]]
+                edges_in_cplx<-edgesTot[,1]+1i*edgesTot[,2] # expression of edges of intersected faces in a complex form for facility
+                faces_in<-edgesTot[,3] # intersected faces
+                is_bd<-as.logical(edgesTot[,4]) # indicates if edges of the mesh of intersection are or not border edges
+
+                out <- .Call("sortCurveMesh", edges_in_cplx,faces_in,is_bd)
+
+                # Convert "out" into a list where each element correpond to a submesh with at each time a vector indicating the order
+                # of points. A NA value will be append at the end of each vector to allow the plot of lines 3d in a single pass (NA
+                # value not being linked by lines3d)
+                Lve<-list()
+                for (j in 1:max(out[[2]])){
+                    Lve[[j]]<-c(which(out[[2]]==j)[order(out[[1]][out[[2]]==j])],NA)
+                }
+                inter<-inter[unlist(Lve),]
+
+                # plot of the intersection
+                lines3d(inter, col = "red", lwd=2)
+
+                # storage
+                vInter[[i]]<<-inter
+            }
+
+            # loop for plane plotting
+            for (i in 1:3){
+                A <- uplanes[1,,1]
+                if (i==1){
+                    # vect norm ? plan 2-3
+                    n <- uplanes[2,,3] - uplanes[1,,3]
+                } else {
+                    n <- uplanes[i,,1] - A
+                }
+
+                # plane parameter
+                d<- -t(n)%*%A
+
+                # plane plotting
+                planes3d(n[1],n[2],n[3],d,alpha=0.7,col="cyan")
+            }
+
+        }
+        is.complete<<-TRUE
+    }
+
+    # unchanged lines from rgl:::rgl.select()
     button <- match.arg(button)
     newhandler <- par3d("mouseMode")
     newhandler[button] <- "selecting"
     oldhandler <- par3d(mouseMode = newhandler)
     on.exit(par3d(mouseMode = oldhandler))
 
-    # modification de l'action d'interface quand l'utilisateur clique sur le bouton droit de la souris :
-    # avant zoom, maintenant pla?age d'un point par magn?tisme (utilisation des sous-fonctions Begin, Update et End)
+    # modification of mouse action when user right clicks: up to now right click zooms, and now it allows dissociated
+    # rotation of mesh and planes.
     rMul<-rgl.setMouseCallbacks(2, begin = trackballBegin, update = trackballUpdate, end = NULL)
 
-    # il faut maintenant suspendre l'?xecution du code et maintenir cette d?finition du clic droit tant que l'utilisateur n'a pas appuy? sur la touche ?chappe
+    # code execution is now stopped, with this new definition of right click action, until user presses escap to
+    # validate plane positions
     dev<-rgl.cur()
 
     while (dev==rgl.cur()){
@@ -248,7 +303,7 @@ selectPlanes<-function (button = c("left", "middle", "right"), mesh, planes,
         if (result$state >= rgl:::msDONE) break
     }
 
-    # si la fen?tre a ?t? ferm?e (?a ne devrait pas arriver) : on sort de cette fonction
+    # if the window is closed (shouldn't occur): we exit this function
     if (dev!=rgl.cur())
     {
         if (modify){
@@ -257,16 +312,17 @@ selectPlanes<-function (button = c("left", "middle", "right"), mesh, planes,
         }
     }
 
-    # Sinon
-    # on red?finit l'action du clic droit par l'action par d?faut comme ?tant le zoom
+    # Otherwise, the mouse action for right click is reinitialized to zoom
     rgl.setMouseCallbacks(2)
-    # ligne de rgl.select :
+
+    # unchanged line from rgl:::rgl.select :
     rgl:::rgl.setselectstate("none")
 
     # Exports
     isDone <- TRUE
     if (result$state == rgl:::msDONE) isDone <- FALSE
-    return(list(isDone=isDone,isClosed=FALSE,vInter=vInter,vPlanes=vPlanes))
+
+    return(list(isDone=isDone,isClosed=FALSE,vInter=vInter))
 }
 
 #############################################################

@@ -264,8 +264,8 @@ SetPtZoom <- function(specFull, Pt, IdxPts=NULL, orthoplanes,
         for (i in 1:3){
             # Only intersection points closed to the intersection planes
             ddi <- sqrt(apply((t(orthoplanes$vInter[[i]]) - Pt)^2, 2, sum))
-            keep <- ddi < (percDist * max(ddi))
-            if (sum(keep)> 0){
+            keep <- ddi < (percDist * max(ddi, na.rm=TRUE))
+            if (sum(keep, na.rm=TRUE)> 0){
                 inter <- sweep(orthoplanes$vInter[[i]][keep, ], 2, Trans2)
                 lines3d(inter, col="red", lwd=2)
             }
