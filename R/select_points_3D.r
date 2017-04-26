@@ -230,7 +230,7 @@ SelectPoints3d<-function (mesh, modify=FALSE, A=NULL, IdxPts=NULL, grDev) {
 #'
 #' @return xxx xxxx
 #'
-SetPtZoom <- function(specFull, Pt, IdxPts=NULL, orthoplanes,
+SetPtZoom <- function(specFull, Pt, IdxPts=NULL, orthoplanes, idxPlanes,
                       percDist=0.15, modify=FALSE, A=NULL, grDev) {
 
     if (missing(grDev)) stop("grDev missing without default value. See 'DigitFixed' ")
@@ -260,8 +260,8 @@ SetPtZoom <- function(specFull, Pt, IdxPts=NULL, orthoplanes,
     shade3d(specFull2)
 
     # draws eventually the intersections visibles on the submesh
-    if (!is.null(orthoplanes$vInter)){
-        for (i in 1:3){
+    if (!is.null(idxPlanes)){
+        for (i in idxPlanes){
             # Only intersection points closed to the intersection planes
             ddi <- sqrt(apply((t(orthoplanes$vInter[[i]]) - Pt)^2, 2, sum))
             keep <- ddi < (percDist * max(ddi, na.rm=TRUE))

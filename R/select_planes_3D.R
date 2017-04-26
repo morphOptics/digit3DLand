@@ -1,4 +1,4 @@
-DrawOrthoplanes <- function(mesh, planes=NULL, interactive=TRUE, is.plot=TRUE) {
+DrawOrthoplanes <- function(mesh,idxPlanes=1:3, planes=NULL, interactive=TRUE, is.plot=TRUE) {
 
     # Two posssible usages:
     # 1/ DrawOrthoplanes(mesh)
@@ -27,7 +27,7 @@ DrawOrthoplanes <- function(mesh, planes=NULL, interactive=TRUE, is.plot=TRUE) {
     # Compute and draw the intersection mesh/planes
     ptsPlanes <- array(NA, c(3,3,3))
     vInter<- list()
-    for (i in 1:3){
+    for (i in idxPlanes){
 
         # plane PC2-PC3 when i=1, PC1-PC3 when i=2, PC1-PC2 when i=3
         ci <- setdiff(1:3, i)
@@ -84,15 +84,14 @@ DrawOrthoplanes <- function(mesh, planes=NULL, interactive=TRUE, is.plot=TRUE) {
         # coefficients a,b,c,d of the plane equation can be determined by a point of the plane
         # and a normal vector to this plane
         # https://fr.wikipedia.org/wiki/Plan_%28math%C3%A9matiques%29#D.C3.A9finition_par_un_vecteur_normal_et_un_point
-        A <- ptsPlanes[1, , 1]
-        for (i in 1:3) {
-            if (i == 1) {
-                # vect norm to plane 2-3
-                n <- ptsPlanes[2, , 3] - ptsPlanes[1, , 3]
-            } else {
-                # vect norm to plan 1-2 and plan 1-3
-                n <- ptsPlanes[i, , 1] - A
-            }
+
+        for (i in idxPlanes) {
+            # a normal vector to a plane can be computed through the vector cross product of 1 orthogonal vectors
+            # contained in this plane
+            A <- ptsPlanes[1, , i]
+            v1<-ptsPlanes[2,,i]-A
+            v2<-ptsPlanes[3,,i]-A
+            n<-xprod(v1,v2)
             d <- -t(n) %*% A
             planes3d(n[1], n[2], n[3], d, alpha = 0.7, col="cyan")
         }
@@ -101,7 +100,7 @@ DrawOrthoplanes <- function(mesh, planes=NULL, interactive=TRUE, is.plot=TRUE) {
     if (interactive){
         # User interaction: manual rotation of the mesh (the orthogonal planes being fixed)
         # until the wanted orientation
-        return(RotateMeshPlane3d(mesh, planes = ptsPlanes, vInter))
+        return(RotateMeshPlane3d(mesh, planes = ptsPlanes, vInter, idxPlanes))
     }else{
         return(list(vInter=vInter))
     }
@@ -109,11 +108,11 @@ DrawOrthoplanes <- function(mesh, planes=NULL, interactive=TRUE, is.plot=TRUE) {
 }
 
 #############################################################
-RotateMeshPlane3d <- function(mesh, planes, vInter) {
+RotateMeshPlane3d <- function(mesh, planes, vInter, idxPlanes) {
     Stop <- 0
     # stop when the rotation is validated by ESC
     while (Stop==0) {
-        temp <- selectPlanes(button="right", mesh=mesh, planes=planes, vInter=vInter)
+        temp <- selectPlanes(button="right", mesh=mesh, planes=planes, vInter=vInter, idxPlanes=idxPlanes)
         if (temp$isDone){
             # because of rgl.... need to close twice the window
             if (temp$isClosed){
@@ -126,7 +125,7 @@ RotateMeshPlane3d <- function(mesh, planes, vInter) {
 }
 
 #############################################################
-selectPlanes<-function (button = c("left", "middle", "right"), mesh, planes, vInter) {
+selectPlanes<-function (button = c("left", "middle", "right"), mesh, planes, vInter, idxPlanes) {
 
     # Re-use of the rgl:::mouseTrackball (from binary) normally used to manually rotate the mesh, and disorted here
     # so that depending on this manual rotation (through the mouse right button), plane(s) seem to stay fix relative
@@ -247,7 +246,7 @@ selectPlanes<-function (button = c("left", "middle", "right"), mesh, planes, vIn
             rgl.pop("shapes",Ids[Ids[,2]=="planes",1])
 
             # loop to update and plot the mesh/plane intersections
-            for (i in 1:3){
+            for (i in idxPlanes){
 
                 # plane PC2-PC3 when i=1, PC1-PC3 when i=2, PC1-PC2 when i=3
                 ci<-setdiff(1:3,i)
@@ -296,20 +295,19 @@ selectPlanes<-function (button = c("left", "middle", "right"), mesh, planes, vIn
             vPlanes<<-uplanes
 
             # loop for plane plotting
-            for (i in 1:3){
-                A <- uplanes[1,,1]
-                if (i==1){
-                    # vect norm ? plan 2-3
-                    n <- uplanes[2,,3] - uplanes[1,,3]
-                } else {
-                    n <- uplanes[i,,1] - A
-                }
+            for (i in idxPlanes) {
+                # a normal vector to a plane can be computed through the vector cross product of 1 orthogonal vectors
+                # contained in this plane
+                A <- uplanes[1, , i]
+                v1<-uplanes[2,,i]-A
+                v2<-uplanes[3,,i]-A
+                n<-xprod(v1,v2)
 
                 # plane parameter
-                d<- -t(n)%*%A
+                d <- -t(n) %*% A
 
                 # plane plotting
-                planes3d(n[1],n[2],n[3],d,alpha=0.7,col="cyan")
+                planes3d(n[1], n[2], n[3], d, alpha = 0.7, col="cyan")
             }
 
         }

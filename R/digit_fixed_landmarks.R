@@ -17,13 +17,25 @@
 #'
 DigitFixed <- function (specFull, decim = 0.25, fixed, index = 1:fixed,
                         templateFile = NULL, idxPtsTemplate,
-                        orthoplane = FALSE, percDist = 0.15,
+                        drawPCplane = FALSE, percDist = 0.15,
                         grDev = list(windowRect = rbind(c(0,50,830,904), c(840,50,1672,904)),
                                      ptSize = 1, spradius = NULL, tcex=2), ...) {
 
     if (!(any(class(specFull) == "mesh3d")))
         stop("specFull must have class \"mesh3d\".")
     spec.name <- deparse(substitute(specFull))
+
+    # check which setting of drawPCplane is called, and set idxPlanes consequently
+    if(is.logical(drawPCplane)){
+        if (drawPCplane){
+            idxPlanes<-1:3
+        }else{
+            idxPlanes<-NULL
+        }
+    }else{
+        V<-c("pc2-pc3","pc1-pc3","pc1-pc2")
+        idxPlanes<-which(is.element(V,tolower(drawPCplane)))
+    }
 
     # Correction if mesh has non-manifold faces (ie faces made of non-manifold edges, ie edges shared by more than 2 faces)
     # Correction needed for the ordering of the intersection points among mesh and planes
@@ -94,11 +106,14 @@ DigitFixed <- function (specFull, decim = 0.25, fixed, index = 1:fixed,
 
     # plot of orthogonal planes: they are initialized as major axes of the mesh
     orthoplanes <- list(vInter=NULL, vPlanes = NULL)
-    if (orthoplane) orthoplanes <- DrawOrthoplanes(specDecim)
-    if (ncol(specDecim$vb)!=ncol(specFull$vb)){
-        # computation of intersections among full mesh and fixed planes
-        orthoplanes <- DrawOrthoplanes(specFull,planes=orthoplanes$vPlanes,interactive=FALSE,is.plot=FALSE)
+    if (length(idxPlanes)>0){
+        orthoplanes <- DrawOrthoplanes(specDecim,idxPlanes)
+        if (ncol(specDecim$vb)!=ncol(specFull$vb)){
+            # computation of intersections among full mesh and fixed planes
+            orthoplanes <- DrawOrthoplanes(specFull,idxPlanes,planes=orthoplanes$vPlanes,interactive=FALSE,is.plot=FALSE)
+        }
     }
+
 
     # Landmark selection - A is the individual configuration matrix [k x 3]
     A <- Adeci <- matrix(NA, fixed, 3, dimnames = list(1:fixed, c("x","y","z")))
@@ -121,7 +136,7 @@ DigitFixed <- function (specFull, decim = 0.25, fixed, index = 1:fixed,
         }
         # zoom on full resolution mesh around the selected landmark
         res2 <- SetPtZoom(specFull=specFull, Pt = Pt, IdxPts = idx_pts,
-                          orthoplanes = orthoplanes, percDist = percDist, grDev=grDev)
+                          orthoplanes = orthoplanes, idxPlanes=idxPlanes, percDist = percDist, grDev=grDev)
         # landmark coordinate on the full resolution mesh
         A[idx_pts, ] <- res2$coords
         # Projection of landmarks on decimated mesh for graphics
@@ -157,7 +172,7 @@ DigitFixed <- function (specFull, decim = 0.25, fixed, index = 1:fixed,
         idx_pts <- res$Idx
         # zoom on full resolution mesh
         res2 <- SetPtZoom(specFull=specFull, Pt = res$coords, IdxPts = idx_pts,
-                          orthoplanes = orthoplanes, percDist = percDist, grDev =  grDev)
+                          orthoplanes = orthoplanes, idxPlanes=idxPlanes, percDist = percDist, grDev =  grDev)
         # landmark coordinate on the full resolution mesh
         A[idx_pts, ] <- res2$coords
         # Projection of the landmark on the decimated mesh for graphics
