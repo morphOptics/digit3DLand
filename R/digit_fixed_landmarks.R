@@ -95,6 +95,10 @@ DigitFixed <- function (specFull, decim = 0.25, fixed, index = 1:fixed,
     # plot of orthogonal planes: they are initialized as major axes of the mesh
     orthoplanes <- list(vInter=NULL, vPlanes = NULL)
     if (orthoplane) orthoplanes <- DrawOrthoplanes(specDecim)
+    if (ncol(specDecim$vb)!=ncol(specFull$vb)){
+        # computation of intersections among full mesh and fixed planes
+        orthoplanes <- DrawOrthoplanes(specFull,planes=orthoplanes$vPlanes,interactive=FALSE,is.plot=FALSE)
+    }
 
     # Landmark selection - A is the individual configuration matrix [k x 3]
     A <- Adeci <- matrix(NA, fixed, 3, dimnames = list(1:fixed, c("x","y","z")))

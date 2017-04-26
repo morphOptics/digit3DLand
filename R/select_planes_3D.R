@@ -1,14 +1,28 @@
-DrawOrthoplanes <- function(mesh) {
+DrawOrthoplanes <- function(mesh, planes=NULL, interactive=TRUE, is.plot=TRUE) {
+
+    # Two posssible usages:
+    # 1/ DrawOrthoplanes(mesh)
+    # Interactive plot and rotation of intersection among mesh and planes
+    #
+    # 2/ DrawOrthoplanes(mesh, planes, interactive=FALSE, is.plot=FALSE)
+    # In case of already computed intersections among a decimated mesh and planes, and to compute
+    # intersections among full mesh and planes. Needs infos on previously determined planes, and no
+    # interactive plotting is allowed.
+    # NOTE: in this usage, intersections among planes and full mesh involve planes determined on decimated mesh,
+    # ie their centers are the centroid of the decimated mesh, and they correspond to major planes computed on
+    # the decimated mesh.
 
     if (class(mesh) != "mesh3d") stop("mesh should be an object \"mesh3d\".")
 
-    # centering of vertex coordinates
-    pts <- t(mesh$vb[1:3, ])
-    A <- apply(pts, 2, mean)
-    pts <- sweep(pts, 2, A)
+    if (is.null(planes)){
+        # centering of vertex coordinates
+        pts <- t(mesh$vb[1:3, ])
+        A <- apply(pts, 2, mean)
+        pts <- sweep(pts, 2, A)
 
-    # Planes
-    sv <- svd(crossprod(pts))
+        # Planes
+        sv <- svd(crossprod(pts))
+    }
 
     # Compute and draw the intersection mesh/planes
     ptsPlanes <- array(NA, c(3,3,3))
@@ -19,7 +33,12 @@ DrawOrthoplanes <- function(mesh) {
         ci <- setdiff(1:3, i)
 
         # planes/mesh intersection
-        tmp <- meshPlaneIntersect2(mesh, A, A+sv$u[,ci[1]], A+sv$u[,ci[2]])
+        if (is.null(planes)){
+            tmp <- meshPlaneIntersect2(mesh, A, A+sv$u[,ci[1]], A+sv$u[,ci[2]])
+        }else{
+            tmp <- meshPlaneIntersect2(mesh, planes[1,,i], planes[2,,i], planes[3,,i])
+        }
+
         inter<- tmp[[1]]
         edgesTot<-tmp[[2]]
         edges_in_cplx<-edgesTot[,1]+1i*edgesTot[,2] # expression of edges of intersected faces in a complex form for facility
@@ -44,35 +63,49 @@ DrawOrthoplanes <- function(mesh) {
         }
         inter<-inter[unlist(Lve),]
 
-        # plot of the intersection
-        lines3d(inter, col = "red", lwd=2)
+        if (is.plot){
+            # plot of the intersection
+            lines3d(inter, col = "red", lwd=2)
+        }
 
         # stockage
         vInter[[i]]<-inter
-        ptsPlanes[, , i] <- rbind(A, A+sv$u[,ci[1]], A+sv$u[,ci[2]])
+        if (is.null(planes)){
+            ptsPlanes[, , i] <- rbind(A, A+sv$u[,ci[1]], A+sv$u[,ci[2]])
+        }else{
+            ptsPlanes[, , i] <- planes[,,i]
+        }
+
         # for each plane, contains 3 points in the plane (needed just after)
     }
 
-    # Draw orthogonal planes via planes3d()
-    # coefficients a,b,c,d of the plane equation can be determined by a point of the plane
-    # and a normal vector to this plane
-    # https://fr.wikipedia.org/wiki/Plan_%28math%C3%A9matiques%29#D.C3.A9finition_par_un_vecteur_normal_et_un_point
-    A <- ptsPlanes[1, , 1]
-    for (i in 1:3) {
-        if (i == 1) {
-            # vect norm to plane 2-3
-            n <- ptsPlanes[2, , 3] - ptsPlanes[1, , 3]
-        } else {
-            # vect norm to plan 1-2 and plan 1-3
-            n <- ptsPlanes[i, , 1] - A
+    if (is.plot){
+        # Draw orthogonal planes via planes3d()
+        # coefficients a,b,c,d of the plane equation can be determined by a point of the plane
+        # and a normal vector to this plane
+        # https://fr.wikipedia.org/wiki/Plan_%28math%C3%A9matiques%29#D.C3.A9finition_par_un_vecteur_normal_et_un_point
+        A <- ptsPlanes[1, , 1]
+        for (i in 1:3) {
+            if (i == 1) {
+                # vect norm to plane 2-3
+                n <- ptsPlanes[2, , 3] - ptsPlanes[1, , 3]
+            } else {
+                # vect norm to plan 1-2 and plan 1-3
+                n <- ptsPlanes[i, , 1] - A
+            }
+            d <- -t(n) %*% A
+            planes3d(n[1], n[2], n[3], d, alpha = 0.7, col="cyan")
         }
-        d <- -t(n) %*% A
-        planes3d(n[1], n[2], n[3], d, alpha = 0.7, col="cyan")
     }
 
-    # User interaction: manual rotation of the mesh (the orthogonal planes being fixed)
-    # until the wanted orientation
-    return(RotateMeshPlane3d(mesh, planes = ptsPlanes, vInter))
+    if (interactive){
+        # User interaction: manual rotation of the mesh (the orthogonal planes being fixed)
+        # until the wanted orientation
+        return(RotateMeshPlane3d(mesh, planes = ptsPlanes, vInter))
+    }else{
+        return(list(vInter=vInter))
+    }
+
 }
 
 #############################################################
@@ -260,6 +293,7 @@ selectPlanes<-function (button = c("left", "middle", "right"), mesh, planes, vIn
                 # storage
                 vInter[[i]]<<-inter
             }
+            vPlanes<<-uplanes
 
             # loop for plane plotting
             for (i in 1:3){
@@ -322,7 +356,7 @@ selectPlanes<-function (button = c("left", "middle", "right"), mesh, planes, vIn
     isDone <- TRUE
     if (result$state == rgl:::msDONE) isDone <- FALSE
 
-    return(list(isDone=isDone,isClosed=FALSE,vInter=vInter))
+    return(list(isDone=isDone,isClosed=FALSE,vInter=vInter,vPlanes=vPlanes))
 }
 
 #############################################################
