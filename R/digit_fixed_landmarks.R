@@ -25,10 +25,16 @@ DigitFixed <- function (specFull, decim = 0.25, fixed, index = 1:fixed,
         stop("specFull must have class \"mesh3d\".")
     spec.name <- deparse(substitute(specFull))
 
+    # Correction if mesh has non-manifold faces (ie faces made of non-manifold edges, ie edges shared by more than 2 faces)
+    # Correction needed for the ordering of the intersection points among mesh and planes
+    specFull<-vcgClean(specFull,sel=2)
+
     if (decim != 1) {
         cat("\nMesh decimation for multiresolution view ----------\n")
         specDecim <- vcgQEdecim(specFull, percent = decim)
         specDecim <- vcgUpdateNormals(specDecim, silent = TRUE)
+        # Correction if mesh has non-manifold faces
+        specDecim<-vcgClean(specDecim,sel=2)
         cat("---------------------------------------------------\n")
     } else specDecim <- specFull
 
