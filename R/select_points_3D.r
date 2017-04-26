@@ -290,8 +290,9 @@ SetPtZoom <- function(specFull, Pt, IdxPts=NULL, orthoplanes, idxPlanes,
     # Adjust the orientation of the decimated mesh to correspond to the one of zoomed mesh
     par3d(dev=grDev$dev, userMatrix = par3d(dev=d2)$userMatrix)
 
+    grDev$windowRect[2, ]<-par3d()$windowRect
     rgl.close()
-    return(list(coords = res2$coords, sp = res2$sp, tx = res2$tx))
+    return(list(coords = res2$coords, sp = res2$sp, tx = res2$tx, grDev=grDev))
 }
 
 DrawSpheres <- function(Pt){

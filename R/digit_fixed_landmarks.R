@@ -137,6 +137,7 @@ DigitFixed <- function (specFull, decim = 0.25, fixed, index = 1:fixed,
         # zoom on full resolution mesh around the selected landmark
         res2 <- SetPtZoom(specFull=specFull, Pt = Pt, IdxPts = idx_pts,
                           orthoplanes = orthoplanes, idxPlanes=idxPlanes, percDist = percDist, grDev=grDev)
+        grDev<-res2$grDev
         # landmark coordinate on the full resolution mesh
         A[idx_pts, ] <- res2$coords
         # Projection of landmarks on decimated mesh for graphics
@@ -173,6 +174,7 @@ DigitFixed <- function (specFull, decim = 0.25, fixed, index = 1:fixed,
         # zoom on full resolution mesh
         res2 <- SetPtZoom(specFull=specFull, Pt = res$coords, IdxPts = idx_pts,
                           orthoplanes = orthoplanes, idxPlanes=idxPlanes, percDist = percDist, grDev =  grDev)
+        grDev<-res2$grDev
         # landmark coordinate on the full resolution mesh
         A[idx_pts, ] <- res2$coords
         # Projection of the landmark on the decimated mesh for graphics
