@@ -19,7 +19,7 @@ DigitFixed <- function (specFull, decim = 0.25, fixed, index = 1:fixed,
                         templateFile = NULL, idxPtsTemplate,
                         drawPCplane = FALSE, percDist = 0.15,
                         grDev = list(windowRect = rbind(c(0,50,830,904), c(840,50,1672,904)),
-                                     ptSize = 1, spradius = NULL, tcex=2), ...) {
+                                     ptSize = 1, spradius = NULL, tcex=2, nbWin=2), ...) {
 
     if (!(any(class(specFull) == "mesh3d")))
         stop("specFull must have class \"mesh3d\".")
@@ -97,6 +97,11 @@ DigitFixed <- function (specFull, decim = 0.25, fixed, index = 1:fixed,
     # plot decimated mesh
     d1 <- Clear3d()
     par3d(windowRect = grDev$windowRect[1, ])
+    if (grDev$nbWin==1){
+        d1 <- currentSubscene3d()
+        layout3d(t(c(1,2)), sharedMouse = TRUE)
+        next3d()
+    }
     shade3d(specDecim)
     grDev$dev <- rgl.cur()
 
@@ -132,7 +137,8 @@ DigitFixed <- function (specFull, decim = 0.25, fixed, index = 1:fixed,
         } else {
             # Selection of remaining landmarks (if any)
             idx_pts <- index[Idx[i-length(idxPtsTemplate)]]
-            Pt <- B[idx_pts, , drop = FALSE]
+            #Pt <- B[idx_pts, , drop = FALSE]
+            Pt <- B[idx_pts, ]
         }
         # zoom on full resolution mesh around the selected landmark
         res2 <- SetPtZoom(specFull=specFull, Pt = Pt, IdxPts = idx_pts,

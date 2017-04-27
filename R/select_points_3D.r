@@ -18,6 +18,11 @@ PlacePt <- function(x, y, verts, norms, mesh, start){
     # conversion window coordinates in 2D screen coordinates
     X <- temp[, 1] * start$viewport[3]
     Y <- (1 - temp[, 2]) * start$viewport[4]
+    subS<-rgl.ids(type="subscene",subscene=0)
+    if (dim(subS)[1]>1 & tail(subS[,1],1)==currentSubscene3d()){ # a single window, set on the second subscene
+        width<-par3d()$windowRect[3]-par3d()$windowRect[1] # screen width => width/2: subscene width
+        X<-X-width/2
+    }
 
     # 3D window coordinates of cliked point
     X1 <- x / start$viewport[3]
@@ -153,14 +158,29 @@ rgl.select2<-function (button = c("left", "middle", "right"), verts, norms, mesh
     rMul <- rgl.setMouseCallbacks(2, Begin, Update, End)
 
     # Execution of the code is waiting until the user press ESC
-    dev <- rgl.cur()
-    while (dev == rgl.cur()) {
-        if (!is.null(idx)) {
-            result <- rgl:::rgl.selectstate()
-            # if ESC -> get out
-            if (result$state >= rgl:::msDONE)
-                break
+    if (grDev$nbWin==2){
+        dev <- rgl.cur()
+        while (dev == rgl.cur()) {
+            if (!is.null(idx)) {
+                result <- rgl:::rgl.selectstate()
+                # if ESC -> get out
+                if (result$state >= rgl:::msDONE)
+                    break
+            }
         }
+    }else{
+        Dev <- rgl.cur()
+        dev <- currentSubscene3d()
+        while (dev == currentSubscene3d()) {
+            if (!is.null(idx)) {
+                result <- rgl:::rgl.selectstate()
+                # if ESC -> get out
+                if (result$state >= rgl:::msDONE)
+                    break
+            }
+        }
+        dev<-Dev
+
     }
 
     # if the window has been closed -> get out
@@ -250,8 +270,13 @@ SetPtZoom <- function(specFull, Pt, IdxPts=NULL, orthoplanes, idxPlanes,
     specFull2$vb[1:3,] <- specFull2$vb[1:3, ] - Trans2
     # plot
     param3d <- par3d()
-    d2 <- open3d()
-    par3d(windowRect = grDev$windowRect[2, ])
+    if (grDev$nbWin==1){
+        next3d()
+    }else{
+        d2 <- open3d()
+        par3d(windowRect = grDev$windowRect[2, ])
+    }
+
     ids2 <- plot3d(specFull2$vb[1, ], specFull2$vb[2, ], specFull2$vb[3, ],
                    size = grDev$ptSize, aspect = FALSE,
                    axes = F, box = F, xlab="", ylab="", zlab="", main = paste("Land - ", IdxPts))
@@ -287,11 +312,16 @@ SetPtZoom <- function(specFull, Pt, IdxPts=NULL, orthoplanes, idxPlanes,
 
     res2 <- SelectPoints3d(specFull2, modify, A, IdxPts, grDev)
     res2$coords <- matrix(res2$coords + Trans2, 1, 3)
-    # Adjust the orientation of the decimated mesh to correspond to the one of zoomed mesh
-    par3d(dev=grDev$dev, userMatrix = par3d(dev=d2)$userMatrix)
+    if (grDev$nbWin>1){
+        # Adjust the orientation of the decimated mesh to correspond to the one of zoomed mesh
+        par3d(dev=grDev$dev, userMatrix = par3d(dev=d2)$userMatrix)
+        grDev$windowRect[2, ]<-par3d()$windowRect
+        rgl.close()
+    }else{
+        delFromSubscene3d(ids=rgl.ids()[,1])
+        #clearSubsceneList(delete=c(FALSE,FALSE,TRUE))
+    }
 
-    grDev$windowRect[2, ]<-par3d()$windowRect
-    rgl.close()
     return(list(coords = res2$coords, sp = res2$sp, tx = res2$tx, grDev=grDev))
 }
 

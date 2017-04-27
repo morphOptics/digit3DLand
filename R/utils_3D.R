@@ -139,7 +139,13 @@ plot.landmark <- function(landmark, d1, idx_pts, grDev, exist = FALSE,...){
         if ("col" %in% names(argin)) col <- argin$col
     }
     # plot
-    rgl.set(d1)
+    if (grDev$nbWin==2){
+        rgl.set(d1)
+    }else{
+        subS<-rgl.ids(type="subscene",subscene=0)
+        useSubscene3d(subS[2,1])
+    }
+
     if (exist) {
         rgl.pop("shapes", grDev$vSp[idx_pts])
         rgl.pop("shapes", grDev$vTx[idx_pts])
