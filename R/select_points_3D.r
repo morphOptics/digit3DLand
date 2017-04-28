@@ -256,7 +256,8 @@ SetPtZoom <- function(specFull, Pt, IdxPts=NULL, orthoplanes, idxPlanes,
     if (missing(grDev)) stop("grDev missing without default value. See 'DigitFixed' ")
     # Conserved only vertices at some distances (eg 15%) maximum of the cliked point
     dd <- sqrt(apply(sweep(specFull$vb[1:3,], 1, Pt)^2, 2, sum))
-    keep <- dd < (percDist * max(dd))
+    maxRad<-(percDist * max(dd))
+    keep <- dd < maxRad
     specFull2 <- subset(specFull, subset = keep)
 
     # if the submesh contains several isolated meshes, we keep the closest to the clicked point
@@ -268,8 +269,11 @@ SetPtZoom <- function(specFull, Pt, IdxPts=NULL, orthoplanes, idxPlanes,
     # center the vertices of the submesh
     Trans2 <- apply(specFull2$vb[1:3, ], 1, mean)
     specFull2$vb[1:3,] <- specFull2$vb[1:3, ] - Trans2
+
     # plot
     param3d <- par3d()
+    vb<-specFull2$vb[1:3,]+Trans2
+    points3d(vb[1, ], vb[2, ], vb[3, ],col="red",radius=0.1)
     if (grDev$nbWin==1){
         next3d()
     }else{
@@ -288,8 +292,8 @@ SetPtZoom <- function(specFull, Pt, IdxPts=NULL, orthoplanes, idxPlanes,
     if (!is.null(idxPlanes)){
         for (i in idxPlanes){
             # Only intersection points closed to the intersection planes
-            ddi <- sqrt(apply((t(orthoplanes$vInter[[i]]) - Pt)^2, 2, sum))
-            keep <- ddi < (percDist * max(ddi, na.rm=TRUE))
+            ddi <- sqrt(apply(sweep(t(orthoplanes$vInter[[i]]), 1, Pt)^2, 2, sum))
+            keep <- ddi < maxRad
             if (sum(keep, na.rm=TRUE)> 0){
                 inter <- sweep(orthoplanes$vInter[[i]][keep, ], 2, Trans2)
                 lines3d(inter, col="red", lwd=2)
@@ -318,8 +322,15 @@ SetPtZoom <- function(specFull, Pt, IdxPts=NULL, orthoplanes, idxPlanes,
         grDev$windowRect[2, ]<-par3d()$windowRect
         rgl.close()
     }else{
-        delFromSubscene3d(ids=rgl.ids()[,1])
-        #clearSubsceneList(delete=c(FALSE,FALSE,TRUE))
+        tmp<-rgl.ids()
+        delFromSubscene3d(ids=tmp[,1])
+        subS<-rgl.ids(type="subscene",subscene=0)
+        useSubscene3d(subS[2,1])
+    }
+    tmp<-rgl.ids()
+    idx_pop_pts<-which(tmp[,2]=="points")
+    if (length(idx_pop_pts)>0){
+        rgl.pop(id=tmp[idx_pop_pts,1])
     }
 
     return(list(coords = res2$coords, sp = res2$sp, tx = res2$tx, grDev=grDev))

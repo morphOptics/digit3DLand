@@ -141,6 +141,7 @@ selectPlanes<-function (button = c("left", "middle", "right"), mesh, planes, vIn
     # our initializations
     is.complete<-TRUE
     uplanes<-NULL
+    vPlanes<-planes
 
     # useful function from rgl:::mouseTrackball
     screenToVector <- function(x, y) {
@@ -353,6 +354,9 @@ selectPlanes<-function (button = c("left", "middle", "right"), mesh, planes, vIn
     # Exports
     isDone <- TRUE
     if (result$state == rgl:::msDONE) isDone <- FALSE
+
+    Ids<-rgl.ids()
+    rgl.pop("shapes",Ids[Ids[,2]=="planes",1])
 
     return(list(isDone=isDone,isClosed=FALSE,vInter=vInter,vPlanes=vPlanes))
 }
