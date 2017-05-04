@@ -191,6 +191,9 @@ setDigitFixedOptions<-function( winNb=1, winSize= rbind(c(0,50,830,904), c(840,5
     #     landmark positioning depending on the degree of decimation used for the decimated mesh.
     #     Default: FALSE.
 
+    warn<-options()$warn
+    options(warn=1)
+
     # Window options
     if (!is.numeric(winNb) | length(winNb)!=1 | !is.element(winNb[1],c(1,2))){
         stop("winNb should be a scalar taking values in {1,2}...")
@@ -347,6 +350,8 @@ setDigitFixedOptions<-function( winNb=1, winSize= rbind(c(0,50,830,904), c(840,5
         stop("zoomSeeLm should be a logical value...")
     }
     zoomOptions<-list(zoomPercDist=zoomPercDist,zoomPtsDraw=zoomPtsDraw,zoomPtsCol=zoomPtsCol,zoomSeeLm=zoomSeeLm)
+
+    options(warn=warn)
 
     return(list(winOptions=winOptions, meshOptions=meshOptions, PCplanesOptions=PCplanesOptions,
                 intersectOptions=intersectOptions, spheresOptions=spheresOptions, labelOptions=labelOptions,
