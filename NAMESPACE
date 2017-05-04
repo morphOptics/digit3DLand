@@ -3,4 +3,5 @@
 S3method(subset,mesh3d)
 export(DigitFixed)
 export(imputeCoords)
+export(setDigitFixedOptions)
 useDynLib(digit3DLand)
