@@ -81,7 +81,7 @@ distMin <- function(x, y){
 
 #############################################################
 rgl.select2<-function (button = c("left", "middle", "right"), verts, norms, mesh,
-                       modify=FALSE, A=NULL, IdxPts=NULL, grDev) {
+                       modify=FALSE, A=NULL, IdxPts=NULL, grDev, whichMesh, prePlaced = NULL) {
 
     # Defines 3 sub-fonctions Begin(), Update() et End() that determine what
     # should be done when the user starts to click
@@ -124,10 +124,18 @@ rgl.select2<-function (button = c("left", "middle", "right"), verts, norms, mesh
             }
             Idx <<- NULL
         }
+        if (grDev$zoomOptions$zoomSeeLm & whichMesh==2){
+            Ids<-rgl.ids()
+            rgl.pop("shapes",Ids[Ids[,2]=="spheres",1])
+        }
         # plot point/label
-        Sp <<- spheres3d(visibles[idx, ], alpha = 0.5, radius=grDev$spradius)
+        Sp <<- spheres3d(visibles[idx, ], alpha = grDev$spheresOptions$spheresAlpha[1,whichMesh],
+                         radius=grDev$spradius[1,whichMesh],
+                         col=grDev$spheresOptions$spheresColor[1,whichMesh])
         Tx <<- text3d(visibles[idx, ], texts = as.character(IdxPts),
-                      cex=grDev$tcex, adj = rep(grDev$spradius, 2))
+                      cex=grDev$labelOptions$labelCex[1,whichMesh],
+                      col= grDev$labelOptions$labelColor[1,whichMesh],
+                      adj = grDev$labadj[1,whichMesh,])
     }
     # Updating the position --------------------------
     Update <- function(x, y) {
@@ -138,9 +146,13 @@ rgl.select2<-function (button = c("left", "middle", "right"), verts, norms, mesh
             rgl.pop("shapes", Sp)
             rgl.pop("shapes", Tx)
         }
-        Sp <<- spheres3d(visibles[idx, ], alpha=0.5, radius=grDev$spradius)
+        Sp <<- spheres3d(visibles[idx, ], alpha = grDev$spheresOptions$spheresAlpha[1,whichMesh],
+                         radius=grDev$spradius[1,whichMesh],
+                         col=grDev$spheresOptions$spheresColor[1,whichMesh])
         Tx <<- text3d(visibles[idx, ], texts = as.character(IdxPts),
-                    cex=grDev$tcex, adj = rep(grDev$spradius, 2))
+                      cex=grDev$labelOptions$labelCex[1,whichMesh],
+                      col= grDev$labelOptions$labelColor[1,whichMesh],
+                      adj = grDev$labadj[1,whichMesh,])
     }
     # Finalizing ----------------------------
     End <- function(x,y){ }
@@ -152,13 +164,50 @@ rgl.select2<-function (button = c("left", "middle", "right"), verts, norms, mesh
     oldhandler <- par3d(mouseMode = newhandler)
     on.exit(par3d(mouseMode = oldhandler))
 
+    if (!is.null(prePlaced)){
+        # In the case where the landmark placed on the decimated mesh is pre-positionned on the full mesh and is
+        # directly validated by user (via esc key) without any manual change, the outputs returned by the mouse action
+        # need to be returned anyway.
+        # The solution choosen here is to call the PlacePt() function with the coordinates of the prePlaced landmark,
+        # to obtain those outputs for this unmodified landmark. Because PlacePt() requires 2D screen coordinates, we
+        # first need to convert the absolute 3D coordinates in prePlaced into 2D screen coordinates:
+
+        start$viewport <- par3d("viewport")
+        start$projection <- rgl.projection()
+
+        # conversion true 3D coordinates in 3D window coordinates
+        temp <- rgl.user2window(prePlaced[1], prePlaced[2], prePlaced[3])
+        # conversion window coordinates in 2D screen coordinates
+        X <- temp[, 1] * start$viewport[3]
+        Y <- (1 - temp[, 2]) * start$viewport[4]
+        subS<-rgl.ids(type="subscene",subscene=0)
+        if (dim(subS)[1]>1 & tail(subS[,1],1)==currentSubscene3d()){ # a single window, set on the second subscene
+            width<-par3d()$windowRect[3]-par3d()$windowRect[1] # screen width => width/2: subscene width
+            X<-X-width/2
+        }
+
+        # call of PlacePt
+        tmp <- PlacePt(X, Y, verts, norms, mesh, start)
+        visibles <- tmp$visibles
+        idx <- tmp$idx
+
+        # plot
+        Sp <- spheres3d(visibles[idx, ], alpha = grDev$spheresOptions$spheresAlpha[1,whichMesh],
+                         radius=grDev$spradius[1,whichMesh],
+                         col=grDev$spheresOptions$spheresColor[1,whichMesh])
+        Tx <- text3d(visibles[idx, ], texts = as.character(IdxPts),
+                      cex=grDev$labelOptions$labelCex[1,whichMesh],
+                      col= grDev$labelOptions$labelColor[1,whichMesh],
+                      adj = grDev$labadj[1,whichMesh,])
+    }
+
     # Modification of the user action when the user use right click
     # before it was a zoom, now track the surface by magnetism
     # (use of sub-functions Begin, Update and End)
     rMul <- rgl.setMouseCallbacks(2, Begin, Update, End)
 
     # Execution of the code is waiting until the user press ESC
-    if (grDev$nbWin==2){
+    if (grDev$winOptions$winNb==2){
         dev <- rgl.cur()
         while (dev == rgl.cur()) {
             if (!is.null(idx)) {
@@ -180,7 +229,6 @@ rgl.select2<-function (button = c("left", "middle", "right"), verts, norms, mesh
             }
         }
         dev<-Dev
-
     }
 
     # if the window has been closed -> get out
@@ -215,7 +263,7 @@ rgl.select2<-function (button = c("left", "middle", "right"), verts, norms, mesh
 #'
 #' @return xxxx vvvvv
 
-SelectPoints3d<-function (mesh, modify=FALSE, A=NULL, IdxPts=NULL, grDev) {
+SelectPoints3d<-function (mesh, modify=FALSE, A=NULL, IdxPts=NULL, grDev, whichMesh, prePlaced = NULL) {
     # Do the transpose only once
     verts <- t(mesh$vb[1:3, ])
     norms <- t(mesh$normals[1:3, ])
@@ -223,7 +271,8 @@ SelectPoints3d<-function (mesh, modify=FALSE, A=NULL, IdxPts=NULL, grDev) {
     # Stop when landmark is validated by ESC or when the window is closed
     while (StopPts==0) {
         temp <- rgl.select2(button="right", verts = verts, norms = norms, mesh = mesh,
-                            modify = modify, A = A, IdxPts = IdxPts, grDev = grDev)
+                            modify = modify, A = A, IdxPts = IdxPts, grDev = grDev, whichMesh=whichMesh,
+                            prePlaced=prePlaced)
         if (temp$isClosed || temp$isDone){
             if (temp$isClosed){
                 # Need to close twice because of rgl...
@@ -251,12 +300,12 @@ SelectPoints3d<-function (mesh, modify=FALSE, A=NULL, IdxPts=NULL, grDev) {
 #' @return xxx xxxx
 #'
 SetPtZoom <- function(specFull, Pt, IdxPts=NULL, orthoplanes, idxPlanes,
-                      percDist=0.15, modify=FALSE, A=NULL, grDev) {
+                      modify=FALSE, A=NULL, grDev) {
 
     if (missing(grDev)) stop("grDev missing without default value. See 'DigitFixed' ")
     # Conserved only vertices at some distances (eg 15%) maximum of the cliked point
     dd <- sqrt(apply(sweep(specFull$vb[1:3,], 1, Pt)^2, 2, sum))
-    maxRad<-(percDist * max(dd))
+    maxRad<-(grDev$zoomOptions$zoomPercDist * max(dd))
     keep <- dd < maxRad
     specFull2 <- subset(specFull, subset = keep)
 
@@ -273,30 +322,44 @@ SetPtZoom <- function(specFull, Pt, IdxPts=NULL, orthoplanes, idxPlanes,
     # plot
     param3d <- par3d()
     vb<-specFull2$vb[1:3,]+Trans2
-    points3d(vb[1, ], vb[2, ], vb[3, ],col="red",radius=0.1)
-    if (grDev$nbWin==1){
+    if (grDev$zoomOptions$zoomPtsDraw){
+        # projection of zoom extent on the decimated mesh
+        points3d(vb[1, ], vb[2, ], vb[3, ], col=grDev$zoomOptions$zoomPtsCol)
+    }
+    if (grDev$winOptions$winNb==1){
         next3d()
     }else{
         d2 <- open3d()
-        par3d(windowRect = grDev$windowRect[2, ])
+        par3d(windowRect = grDev$winOptions$winSize[2,])
     }
 
-    ids2 <- plot3d(specFull2$vb[1, ], specFull2$vb[2, ], specFull2$vb[3, ],
-                   size = grDev$ptSize, aspect = FALSE,
-                   axes = F, box = F, xlab="", ylab="", zlab="", main = paste("Land - ", IdxPts))
-    if (is.null(specFull2$material))
-        specFull2$material <- "gray"
-    shade3d(specFull2)
+    # plot zoomed mesh
+    if (grDev$meshOptions$meshShade[2]){
+        shade3d(specFull2, col=grDev$meshOptions$meshColor[2], alpha=grDev$meshOptions$meshAlpha[2])
+    }
+    if (grDev$meshOptions$meshWire[2]){
+        wire3d(specFull2, col=grDev$meshOptions$meshColor[2], alpha=grDev$meshOptions$meshAlpha[2])
+    }
+    if (grDev$meshOptions$meshPoints[2]){
+        points3d(t(specFull2$vb[1:3,]), col=grDev$meshOptions$meshColor[2], alpha=grDev$meshOptions$meshAlpha[2])
+    }
 
     # draws eventually the intersections visibles on the submesh
     if (!is.null(idxPlanes)){
+        cpt<-0
         for (i in idxPlanes){
+            cpt<-cpt+1
             # Only intersection points closed to the intersection planes
             ddi <- sqrt(apply(sweep(t(orthoplanes$vInter[[i]]), 1, Pt)^2, 2, sum))
             keep <- ddi < maxRad
             if (sum(keep, na.rm=TRUE)> 0){
                 inter <- sweep(orthoplanes$vInter[[i]][keep, ], 2, Trans2)
-                lines3d(inter, col="red", lwd=2)
+                if (grDev$intersectOptions$intersectLines[cpt]){
+                    lines3d(inter, col = grDev$intersectOptions$intersectColor[cpt])
+                }
+                if (grDev$intersectOptions$intersectPoints[cpt]){
+                    points3d(inter, col = grDev$intersectOptions$intersectColor[cpt])
+                }
             }
         }
     }
@@ -304,22 +367,22 @@ SetPtZoom <- function(specFull, Pt, IdxPts=NULL, orthoplanes, idxPlanes,
     # Adjust the orientation of the zoomed mesh to correspond to the one of the decim mesh
     rgl.viewpoint(userMatrix = param3d$userMatrix)
 
-    if (is.null(grDev$spradius)) {
-        tmp <- diff(apply(specFull2$vb[1:3,], 1, range))
-        grDev$spradius <- (1/50)*min(tmp)
-    }
-    # Add the point on the zoomed mesh
-      # if (!is.null(IdxPts)) {
-      #     DrawSpheres(Pt - Trans2)
-      #   #spheres3d(Pt - Trans2, alpha=0.10, color = "lightskyblue2", radius=8*grDev$spradius)
-      # }
+    # set sphere radius
+    tmp <- diff(apply(specFull2$vb[1:3,], 1, range))
+    grDev$spradius[,2] <- grDev$spheresOptions$spheresRad[,2] * min(tmp)
 
-    res2 <- SelectPoints3d(specFull2, modify, A, IdxPts, grDev)
+    # Add the point on the zoomed mesh (if asked)
+    if (!is.null(IdxPts) & grDev$zoomOptions$zoomSeeLm) {
+        res2 <- SelectPoints3d(specFull2, modify, A, IdxPts, grDev, whichMesh = 2, prePlaced = Pt - Trans2)
+    }else{
+        res2 <- SelectPoints3d(specFull2, modify, A, IdxPts, grDev, whichMesh = 2)
+    }
+
     res2$coords <- matrix(res2$coords + Trans2, 1, 3)
-    if (grDev$nbWin>1){
+    if (grDev$winOptions$winNb>1){
         # Adjust the orientation of the decimated mesh to correspond to the one of zoomed mesh
         par3d(dev=grDev$dev, userMatrix = par3d(dev=d2)$userMatrix)
-        grDev$windowRect[2, ]<-par3d()$windowRect
+        grDev$winOptions$winSize[2, ]<-par3d()$windowRect
         rgl.close()
     }else{
         tmp<-rgl.ids()
@@ -327,28 +390,39 @@ SetPtZoom <- function(specFull, Pt, IdxPts=NULL, orthoplanes, idxPlanes,
         subS<-rgl.ids(type="subscene",subscene=0)
         useSubscene3d(subS[2,1])
     }
-    tmp<-rgl.ids()
-    idx_pop_pts<-which(tmp[,2]=="points")
-    if (length(idx_pop_pts)>0){
-        rgl.pop(id=tmp[idx_pop_pts,1])
+
+    # pop the projection of zoom extent on the decimated mesh (taking care to don't delete possible points for mesh
+    # plotting)
+    if (grDev$zoomOptions$zoomPtsDraw){
+        Ids<-rgl.ids()
+        idxIdsPts<-which(Ids[,2]=="points")
+        li<-length(idxIdsPts)
+        if (li>1){
+            idxIdsPts<-idxIdsPts[li]
+            rgl.pop("shapes",Ids[idxIdsPts,1])
+        }else{
+            if (li==1 & !grDev$meshOptions$meshPoints[1]){
+                rgl.pop("shapes",Ids[idxIdsPts,1])
+            }
+        }
     }
 
     return(list(coords = res2$coords, sp = res2$sp, tx = res2$tx, grDev=grDev))
 }
 
-DrawSpheres <- function(Pt){
-    alpha <- matrix(seq(0, 2*pi, by=pi/8), ncol=1)
-    phi <- seq(-pi/2, pi/2, by=pi/50)
-    r <- grDev$spradius * 5
-
-    circl <- function(alpha, phi, r, Pt){
-        x <- r * cos(alpha) * cos(phi) + Pt[1]
-        y <- r * sin(alpha) * cos(phi)
-        z <- r * sin(phi)
-        lines3d(x, z + Pt[2], y + Pt[3], col="lightskyblue2")
-        lines3d(x, y + Pt[2], z + Pt[3], col="lightskyblue2")
-    }
-    apply(alpha, 1, circl, phi, r, Pt)
-}
+# DrawSpheres <- function(Pt){
+#     alpha <- matrix(seq(0, 2*pi, by=pi/8), ncol=1)
+#     phi <- seq(-pi/2, pi/2, by=pi/50)
+#     r <- grDev$spradius * 5
+#
+#     circl <- function(alpha, phi, r, Pt){
+#         x <- r * cos(alpha) * cos(phi) + Pt[1]
+#         y <- r * sin(alpha) * cos(phi)
+#         z <- r * sin(phi)
+#         lines3d(x, z + Pt[2], y + Pt[3], col="lightskyblue2")
+#         lines3d(x, y + Pt[2], z + Pt[3], col="lightskyblue2")
+#     }
+#     apply(alpha, 1, circl, phi, r, Pt)
+# }
 
 

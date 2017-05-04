@@ -127,19 +127,16 @@ plot.landmark <- function(landmark, d1, idx_pts, grDev, exist = FALSE,...){
     if (length(landmark) != 3)
         stop("landmark should be a xyz point")
 
-    # Graphical parameters - default
-    alpha <- 0.5
-    color <- "cyan"
-    col <- "magenta"
-    # Modify them in they are in the optional args
-    argin <- list(...)
-    if (length(argin)) {
-        if ("alpha" %in% names(argin)) alpha <- argin$alpha
-        if ("color" %in% names(argin)) color <- argin$color
-        if ("col" %in% names(argin)) col <- argin$col
-    }
+    # Graphical parameters
+    alpha <- grDev$spheresOptions$spheresAlpha[2,1]
+    color <- grDev$spheresOptions$spheresColor[2,1]
+    rad <- grDev$spradius[2,1]
+    col <- grDev$labelOptions$labelColor[2,1]
+    cex <- grDev$labelOptions$labelCex[2,1]
+    adj <- grDev$labelOptions$labelAdj[2,1,]
+
     # plot
-    if (grDev$nbWin==2){
+    if (grDev$winOptions$winNb==2){
         rgl.set(d1)
     }else{
         subS<-rgl.ids(type="subscene",subscene=0)
@@ -150,9 +147,9 @@ plot.landmark <- function(landmark, d1, idx_pts, grDev, exist = FALSE,...){
         rgl.pop("shapes", grDev$vSp[idx_pts])
         rgl.pop("shapes", grDev$vTx[idx_pts])
     }
-    grDev$vSp[idx_pts] <- spheres3d(landmark, color = color, alpha = alpha, radius = grDev$spradius)
+    grDev$vSp[idx_pts] <- spheres3d(landmark, color = color, alpha = alpha, radius = rad)
     grDev$vTx[idx_pts] <- text3d(landmark, texts = as.character(idx_pts), col = col,
-                                 cex = grDev$tcex, adj = rep(grDev$spradius, 2))
+                                 cex = cex, adj = adj)
 
     return(grDev)
 }
