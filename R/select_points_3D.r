@@ -1,16 +1,4 @@
-#' @title PlacePt
-#' @description xxxx
-#'
-#' @details XXX
-#' @param x Screen x-coordinate of the clicked point
-#' @param y Screen y-coordinate of the clicked point
-#' @param verts XXX
-#' @param norms XXX
-#' @param mesh 3d mesh
-#' @param start xxxx
-#'
-#' @return list with the visible vertices and their index
-#'
+###########################
 PlacePt <- function(x, y, verts, norms, mesh, start){
     # click point ----------------------------
     temp <- rgl.user2window(x = verts[, 1], y = verts[, 2],
@@ -74,6 +62,7 @@ PlacePt <- function(x, y, verts, norms, mesh, start){
     return(list(visibles=visibles, idx=idx))
 }
 
+###########################
 distMin <- function(x, y){
     tmp <- sqrt(apply(sweep(x$vb, 1, y$vb)^2, 2, sum)) # To Remi why it was colMeans?
     return(c(min(tmp), which.min(tmp)))
@@ -250,19 +239,7 @@ rgl.select2<-function (button = c("left", "middle", "right"), verts, norms, mesh
     return(list(coords=visibles[idx, ], Idx=Idx, isDone=isDone, isClosed=FALSE, sp=Sp, tx=Tx))
 }
 
-
-#' @title SelectPoints3d
-#' @description Function selects a point on the surface of a 3d mesh
-#' @details A 3d point is selected using OSX:CMD+mouse, Win:?, Linux:? and
-#' may be optionally moved by not releasing CMD. Final selection is done with ESC
-#' @param mesh A 3d mesh as opened by (see \code{\link[Rvcg]{vcgPlyRead}})
-#' @param modify logical allowing to modify continuously the point by tracking the surface
-#' @param A Optional matrix that store all landmarks
-#' @param IdxPts XXX
-#' @param grDev Graphical parameters (see \code{\link[digit3DLand]{DigitFixed}})
-#'
-#' @return xxxx vvvvv
-
+###########################
 SelectPoints3d<-function (mesh, modify=FALSE, A=NULL, IdxPts=NULL, grDev, whichMesh, prePlaced = NULL) {
     # Do the transpose only once
     verts <- t(mesh$vb[1:3, ])
@@ -284,21 +261,7 @@ SelectPoints3d<-function (mesh, modify=FALSE, A=NULL, IdxPts=NULL, grDev, whichM
     return(temp)
 }
 
-#' @title SetPtZoom
-#' @description Zoom around the selected point on the decimated mesh
-#' @details Function zoomed on the selected point by opening a new 3d scene with
-#' the full resolution mesh within some distance of the point
-#' @param specFull Full resolution mesh
-#' @param Pt Numeric vector with the xyz-coordinates of the clicked point
-#' @param IdxPts xxx
-#' @param orthoplanes xxx
-#' @param percDist proportion of the maximu distance between the point and all vertices
-#' @param modify if the point is modifiable
-#' @param A Matrix of coordinates of landmarks
-#' @param grDev Some graphical parameters
-#'
-#' @return xxx xxxx
-#'
+###########################
 SetPtZoom <- function(specFull, Pt, IdxPts=NULL, orthoplanes, idxPlanes,
                       modify=FALSE, A=NULL, grDev) {
 

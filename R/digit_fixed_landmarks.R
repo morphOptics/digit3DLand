@@ -1,22 +1,142 @@
-#' @title digitFixed
-#' @description XXXX
-#' @details cccccc
-#' @param specFull full resolution mesh3d object
-#' @param decim 0-1 number setting the amount of reduction relative to existing face number to decimate the full resolution mesh. Used for multiresolution. (see \code{\link[Rvcg]{vcgQEdecim}})
-#' @param fixed number of landmarks to digitalize
-#' @param index digitalization sequence of landmarks
-#' @param templateFile template of 3D coordinates. Order of landmarks must be the
-#' same than the one specified in index
-#' @param idxPtsTemplate Indices of landmarks used to fit the template
-#' @param orthoplane logical whether or not orthoplane are draw
-#' @param percDist percentage of distance around the landmark use for zooming
-#' @param grDev list of graphical parameters with ptSize the point size, windowRect xxxx, spradius and tcex
-#' @param ... additional graphical parameters to be passed to plot (color, alpha, col)
-#' @export
-#' @return XXXX
+###########################
+#' @title Digitizes a Mesh
+#' @description Interactive digitization of a mesh3d object.
+#' @details This function allows to interactively digitize \emph{p}=\code{fixed} landmarks on the surface of a mesh,
+#'          using two versions of this mesh: \cr
+#'          - a decimated version (\code{specDecim}) to grossly positionned in a first time a given landmark, \cr
+#'          - and then the full resolution version of the mesh (\code{specFull}) to finely positionned this landmark on
+#'            a zoomed area around the previously positionned landmark \cr
+#'          User should interact first on the decimated mesh, and then, landmark location will be validated on the
+#'          full resoltution mesh.
 #'
-DigitFixed <- function (specFull, decim=0.5, fixed, idxFixed = 1:fixed, templateCoord = NULL, idxTemplate = NULL,
-                        GrOpt=setDigitFixedOptions()) {
+#'          The rationale to adopt a two steps approach to position landmarks through the use of a
+#'          decimated mesh was motivated by several causes: \cr
+#'          1/ The user interactions with the mesh (as the rotation, the zoom, and also the landmark location) can
+#'             become time-consuming for heavy meshes, making not fluid at all the mesh digitizing. \cr
+#'          2/ The automatic display of the zoomed zone allowed to question user on its landmark positionning if it
+#'             has been made with a low magnfication. \cr
+#'          3/ Because mesh translation is not possible with this function, the zoomed zone allows to digitize more
+#'             easily landmarks distant from the mesh (and rotation) center.
+#'
+#'          \strong{a. Basic process for landmark digitization}
+#'
+#'          Mouse and keyboard interactions for landmark digitization: \cr
+#'          - left click: mesh rotation \cr
+#'          - scroll wheel: zoom and dezoom \cr
+#'          - right click for Windows users, and cmd + right click for Mac users: digitize a landmark \cr
+#'          - Escap key press: validate the landmark positionning (and then pass to the next landmark digitizing) \cr
+#'
+#'          In its basic version, the function process divides into 2 steps: \cr
+#'          1/ Landmark digitizing \cr
+#'          2/ Once all the landmarks are digitized, user can modify (or not) any of them as many time as wanted. \cr
+#'
+#'          During step 1/, user should first grossly position a landmark on the decimated mesh (step 1a/). While the
+#'          landmark is not validated by the Escape key, the user is free to re-position as many time as wanted the
+#'          landmark (rotation and zoom can be changed as well). Once the Escape key is pressed, the zoomed full
+#'          resolution mesh appears (step 1b/), to finely positioned the landmark. As before, the user can change the
+#'          landmark positioning, and will definitely validate it by the Escape key to digitize then the next landmark.
+#'
+#'          Once all the landmarks are positionned, the step 2/ allow user to modify (if necessary) any landmark.
+#'          Just click on (or near) the landmark to modify and then, the process is the same as the one described
+#'          for step 1/ (1a/ & 1b/). Once the user estimates that all landmarks are correctly positionned, The
+#'          digitization of the mesh is validated by closing the graphic device (red cross). If no landmark needs
+#'          modification, the device can be closed as soon as the step 1/ is done.
+#'
+#'          \strong{WARNING}: be carreful that the window should be closed once all landmark are validated, meaning that
+#'          step 1b/ should be finished, and that no one landmark modification during step 2/ is in progress. To
+#'          ensure of this, the zoomed mesh shouldn't be visible anymore, and all landmarks on the decimated mesh
+#'          should have the same color (blue by default). Otherwise, the landmark coordinates won't be exported.
+#'
+#'          \strong{b. First refinement: using a template configuration}
+#'
+#'          A configuration matrix of landmark coordinates (\code{templateCoord}) can be used as a template to fasten
+#'          the digitization process. In this case, user should first digitize few landmarks (set with
+#'          \code{idxTemplate}) on the treated mesh, and once they are positionned, the function computes first rigid
+#'          transformations (translation, scaling, rotation) to fit the template first landmarks onto the first
+#'          digitized landmarks from the digitized mesh, then apply those transformations on the full template
+#'          configuration, and finally project the template landmark onto the digitzed mesh.
+#'
+#'          Those projected landmarks from template on the mesh are expected (at least for small shape variablity cases,
+#'          and with a judicious choice for the template configuration) to be positionned near the actual landmark to
+#'          digitize. Consequently, the function uses this information of approximative position for the remainging
+#'          landmarks as an assesment of the zone where the final landmarks should be positionned. Concretely,
+#'          during the digitization process, the template projection of remaining landmark allows to automatically
+#'          process the step 1a/ without need of user interaction, and the zoomed full mesh is automatically assessed
+#'          for each landmark, and user needs only to finely position them on during step 1b/.
+#'
+#'          \strong{Note 1}: It can occur that the assessed zoomed mesh doesn't correspond to the actual zone where the
+#'                           landmark should be positioned. If so, and because seep 1b/ will process automatically each
+#'                           landmark the ones after the others, you can simply incorrectly positioned this landmark,
+#'                           and modify it later during step 2/.
+#'
+#'          \strong{Note 2}: The first few digitized landmarks used to fit the template on the mesh are decisive to
+#'                           obtain a good positioning of the remainging landmarks. We advise user to choose at least 4
+#'                           landmarks, sufficiently spaced each one with other and describing the whole mesh in its 3
+#'                           dimensions (so avoiding to choose landmarks positionned in a single plane).
+#'
+#'          \strong{Note 3}: In its current version, the function doesn't allow to modify these first landmarks before
+#'                           to fit the tempalte. So, if some of those landmarks are uncorrectly positionned, it can
+#'                           highly impact the projection of the remaining landmarks and then the assessment of the
+#'                           zoomed zones. Thus, we can only encourage user to be carreful on the positioning of those
+#'                           landmarks to avoid to have to modifiy most of the landmarks durin the step 2/...
+#'
+#'          \strong{c. Second refinement: using mesh/plane intersection as a guideline to digitize landmark}
+#'
+#'          An optional preliminary step allow user to interactively rotate plane(s) intersecting the mesh, and
+#'          to keep a record of this intersection during the landmark digitizing. It could be of interest when
+#'          some landmarks to digitize are located along a symmetry axis. To process this step, user should set
+#'          options of the GrOpt argument (through the function \code{\link{setGraphicOptions}}, see associated help
+#'          for details).
+#'
+#'          Mouse and keyboard interactions for plane rotation: \cr
+#'          - left click: mesh & plane(s) rotation as a single block \cr
+#'          - scroll wheel: zoom and dezoom \cr
+#'          - right click for Windows users, and cmd + right click for Mac users: rotation of the mesh while the
+#'            plane(s) stay fixed. \cr
+#'          - Escap key press: validate the plane(s) positioning (and then pass to the landmark digitization)
+#'
+#'          With this option, the function process divides into 3 steps: \cr
+#'          0/ Plane(s) rotation \cr
+#'          1/ Landmark digitizing \cr
+#'          2/ Once all the landmarks are digitized, user can modify (or not) any of them as many times as necessary.
+#'
+#'          During step 0/, user is free to rotate as many time as wanted the plane(s) relative to the mesh. The
+#'          rotation is validated by pressing the Escap key. Then , steps 1/ and 2/ will be processed as described
+#'          before. Note that the proposed planes are limited to the planes made by major axes of the mesh, so that
+#'          from 1 to 3 planes can be drawn, they are orthogonal each one to the other, and they are centred on the
+#'          mesh centroid.
+#' @usage
+#' \method{digitMesh}{mesh3d}(specFull, specDecim, fixed, idxFixed = 1:fixed, templateCoord = NULL,
+#'           idxTemplate = NULL, GrOpt = setGraphicOptions())
+#' @param specFull Full resolution mesh3d object.
+#' @param specDecim Decimated resolution mesh3d object, as obtained through \code{\link{decimMesh.mesh3d}} for example.
+#' @param fixed Number of landmarks to digitize.
+#' @param idxFixed Numeric vector with \code{fixed} positive integers specifing the landmark ordering in which the
+#'                 landmarks will be digitized. \cr
+#'                 Default: \code{1:fixed}, meaning that landmarks will be digitized following the ordering of their
+#'                          numbers.
+#' @param templateCoord Numeric matrix with three columns (x,y,z) and at least four lines indicating the
+#'                      coordinates of at least four 3D points needed to fit the template configuration on the mesh. \cr
+#'                      \strong{Warning}: The landmarks in the template configurations should be sorted following their
+#'                                        numbers, even if the landmarks used to fit it on the mesh aren't stored in
+#'                                        the first lines of this matrix. In such a case, it should be specified with
+#'                                        \code{idxTemplate}. \cr
+#'                      Default:  \code{NULL} => no template will be used.
+#' @param idxTemplate Numeric vector with positive integers indicating the numbers of landmarks of the template used to
+#'                    fit it on the mesh, sorted in the order with which they will be digitized on the mesh. For
+#'                    example, if the landmarks used are the landmarks numbered 10, 12, 17 and 23, and digitized in the
+#'                    following order on the mesh: 12, 10, 23, 17, \code{idxTemplate} should be set to:
+#'                    \code{c(12, 10, 23, 17)}. \cr
+#'                    Default: \code{NULL} => no template will be used, but corrected to \code{1:4} if
+#'                             \code{templateCoord} is provided, but not \code{idxTemplate}.
+#' @param GrOpt List defining options for graphic rendering. See \code{\link{setGraphicOptions}} for details.
+#' @return A numeric matrix with \code{fixed} lines and 3 columns containing the 3D coordinates of the digitized
+#'         landmarks.
+#' @seealso \code{\link{digitMesh.character}}.
+#' @export
+#'
+digitMesh.mesh3d <- function (specFull, specDecim, fixed, idxFixed = 1:fixed, templateCoord = NULL, idxTemplate = NULL,
+                              GrOpt=setGraphicOptions()) {
 
     if (!(any(class(specFull) == "mesh3d")))
         stop("specFull must have class \"mesh3d\".")
@@ -37,24 +157,7 @@ DigitFixed <- function (specFull, decim=0.5, fixed, idxFixed = 1:fixed, template
     # Correction if mesh has non-manifold faces (ie faces made of non-manifold edges, ie edges shared by more than 2 faces)
     # Correction needed for the ordering of the intersection points among mesh and planes
     specFull<-vcgClean(specFull,sel=2)
-
-    # decimation
-    if (decim != 1) {
-        cat("\nMesh decimation for multiresolution view ----------\n")
-        specDecim <- vcgQEdecim(specFull, percent = decim)
-        specDecim <- vcgUpdateNormals(specDecim, silent = TRUE)
-        # Correction if mesh has non-manifold faces
-        specDecim<-vcgClean(specDecim,sel=2)
-        cat("---------------------------------------------------\n")
-    } else {
-        specDecim <- specFull
-    }
-    # material<-"gray" ??? au lieu de material$color ???
-    # if (is.null(specFull$material)) {
-    #     specFull$material <- specDecim$material <- "gray"
-    # } else {
-    #     specDecim$material <- "gray" # We may want to fix this by transfering vertex color etc
-    # }
+    specDecim<-vcgClean(specDecim,sel=2)
 
     if (missing(fixed)) {
         stop("missing number of landmarks to digitalize")
@@ -162,6 +265,7 @@ DigitFixed <- function (specFull, decim=0.5, fixed, idxFixed = 1:fixed, template
         grDev <- plot.landmark(Adeci[idx_pts, ], d1, idx_pts, grDev, exist = TRUE)
 
         if(!is.null(templateCoord) & i==length(idxTemplate)){
+
             # all reference points of the template are placed
             # => impute missing landmarks
             B <- imputeCoords(A, template = template$M) #idx = idxTemplate
@@ -176,6 +280,7 @@ DigitFixed <- function (specFull, decim=0.5, fixed, idxFixed = 1:fixed, template
             rgl.viewpoint(userMatrix = R)
         }
     }
+
     # Now, wait if the user want changed any landmark. Stop when the graphics is closed
     Stop <- 0
     grDev$dev <- d1
@@ -201,5 +306,6 @@ DigitFixed <- function (specFull, decim=0.5, fixed, idxFixed = 1:fixed, template
         grDev$vTx[idx_pts] <- res$tx
         grDev <- plot.landmark(Adeci[idx_pts, ], d1, idx_pts, grDev, exist = TRUE)
     }
+
     return(A)
 }

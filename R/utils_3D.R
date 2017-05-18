@@ -58,17 +58,6 @@ rotMajorAxes <- function(mat) {
 }
 
 ###########################
-
-#' imputeCoords
-#' @description Function imputes position of landmarks given a full template
-#' and a subset of these landmarks
-#'
-#' @param landmark matrix with NA or position of landmarks on the specimen
-#' @param landmark coordinates on the template
-#'
-#' @return A matrix of imputed landmark coordinates
-#' @export
-#'
 imputeCoords <- function(A, template) {
     # defines 3 matrices of configurations:
     # - configA : points placed on the mesh
@@ -111,18 +100,6 @@ imputeCoords <- function(A, template) {
 }
 
 ###########################
-
-#' @title plot.landmark
-#' @description Function takes a landmark and plots it onto the surface of a 3D mesh
-#' @param landmark a 3D landmark
-#' @param d1 a rgl scene
-#' @param idx_pts index of the landmark
-#' @param grDev graphical parameters spradius, ctex, and vSp, vTx for object ID
-#' in the rgl scene (as returned by \code{\link[Rvcg]{spheres3d}} or
-#' \code{\link[Rvcg]{text3d}}) and used by \code{\link[Rvcg]{rgl.pop}} to modify the landmark
-#' if it already exist in the scene
-#' @param exist logical whether or not the landmark has existing labels in the scene
-#' @param ... optional graphical arguments (color and alpha for 3dspheres, col for 3dtext)
 plot.landmark <- function(landmark, d1, idx_pts, grDev, exist = FALSE,...){
     if (length(landmark) != 3)
         stop("landmark should be a xyz point")
@@ -155,15 +132,6 @@ plot.landmark <- function(landmark, d1, idx_pts, grDev, exist = FALSE,...){
 }
 
 ###########################
-
-#' @title subset.mesh3d
-#' @description Extracts a submesh
-#' @details Function build a submesh from the mesh3d object according to some kept vertices
-#' @param mesh a mesh3d object
-#' @param subset expression indicating vertices to keep
-#' @param select expression indicating fields to select.
-#' @return Return of mesh3d object
-#' @export
 subset.mesh3d <- function(mesh, subset, select=c("vb", "normals", "it", "material")) {
 
     if (missing(subset)) {
@@ -202,7 +170,6 @@ subset.mesh3d <- function(mesh, subset, select=c("vb", "normals", "it", "materia
 
 
 ###########################
-
 meshPlaneIntersect2<-function (mesh, v1, v2 = NULL, v3 = NULL, normal = NULL)
 {
 
@@ -259,7 +226,6 @@ meshPlaneIntersect2<-function (mesh, v1, v2 = NULL, v3 = NULL, normal = NULL)
 }
 
 ###########################
-
 edgePlaneIntersect2<-function (pointcloud, edges, v1, v2 = NULL, v3 = NULL, normal = NULL) {
 
     # modified function from Morpho:::edgePlaneIntersect
