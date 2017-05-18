@@ -11,7 +11,7 @@ Author: Nicolas Navarro [aut, cre],
 Description:
 License: GPL (>=2.0)
 Depends:
-    R (>= 3.1.0), rgl, Rvcg, sp, Rcpp
+    R (>= 3.1.0), rgl, Rvcg, sp, Rcpp, Morpho
 LazyData: TRUE
 RoxygenNote: 6.0.1
 URL: https://github.com/nnavarro/digit3DLand
