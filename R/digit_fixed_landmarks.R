@@ -193,8 +193,9 @@ digitMesh.mesh3d <- function (specFull, specDecim, fixed, idxFixed = 1:fixed, te
 
     # Centering of the meshes on the centroid of the decimated one
     tmp <- scale(t(specDecim$vb[-4, ]), scale = FALSE)
+    Trans1 <- attr(tmp, which="scaled:center")
     specDecim$vb[-4, ] <- t(tmp)
-    specFull$vb[-4, ] <- sweep(specFull$vb[-4, ], 1, attr(tmp, which="scaled:center"))
+    specFull$vb[-4, ] <- sweep(specFull$vb[-4, ], 1, Trans1)
 
     # plot decimated mesh
     d1 <- Clear3d()
@@ -306,6 +307,9 @@ digitMesh.mesh3d <- function (specFull, specDecim, fixed, idxFixed = 1:fixed, te
         grDev$vTx[idx_pts] <- res$tx
         grDev <- plot.landmark(Adeci[idx_pts, ], d1, idx_pts, grDev, exist = TRUE)
     }
+
+    # restore position
+    A <- A + matrix(Trans1, fixed, 3, byrow=TRUE)
 
     return(A)
 }
