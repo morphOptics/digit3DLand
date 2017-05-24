@@ -1097,7 +1097,7 @@ checkMat<-function(M,message=as.character(deparse(substitute(M)))){
 #'                     (those values will be recycled for the full mesh); \cr
 #'                   - a unique value for the setting before and after the user validation, and for the decimated and
 #'                     the full mesh. \cr
-#'                   Default: \code{0.02}.
+#'                   Default: \code{0.01}.
 #' @param spheresColor A character vector or matrix taking values within \code{\link[grDevices]{colors}}() indicating
 #'                     with which color the spheres figuring the landmarks should be plotted. See \code{spheresRad}
 #'                     for possible settings. \cr
@@ -1160,7 +1160,7 @@ setGraphicOptions<-function(winNb=1, winSize= rbind(c(0,50,830,904), c(840,50,16
                             meshPoints=c(FALSE,TRUE), meshWire=rep(FALSE,2),
                             PCplanesDraw=FALSE, PCplanesColor= "cyan", PCplanesAlpha=0.7,
                             intersectLines=TRUE, intersectPoints=FALSE, intersectColor="red",
-                            spheresRad=1/50, spheresColor=matrix(c("black","blue"),2,2), spheresAlpha=1,
+                            spheresRad=1/100, spheresColor=matrix(c("black","blue"),2,2), spheresAlpha=1,
                             labelCex=2, labelColor="magenta", labelAdj=1/50,
                             zoomPercDist=0.15, zoomPtsDraw=TRUE, zoomPtsCol="orange", zoomSeeLm=FALSE
                             )

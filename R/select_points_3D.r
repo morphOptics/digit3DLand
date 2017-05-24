@@ -332,7 +332,7 @@ SetPtZoom <- function(specFull, Pt, IdxPts=NULL, orthoplanes, idxPlanes,
 
     # set sphere radius
     tmp <- diff(apply(specFull2$vb[1:3,], 1, range))
-    grDev$spradius[,2] <- grDev$spheresOptions$spheresRad[,2] * min(tmp)
+    grDev$spradius[,2] <- grDev$spheresOptions$spheresRad[,2] * mean(tmp)
 
     # Add the point on the zoomed mesh (if asked)
     if (!is.null(IdxPts) & grDev$zoomOptions$zoomSeeLm) {

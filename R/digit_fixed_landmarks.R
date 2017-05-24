@@ -216,8 +216,8 @@ digitMesh.mesh3d <- function (specFull, specDecim, fixed, idxFixed = 1:fixed, te
     grDev$vSp <- grDev$vTx <- Sp <- Tx <- rep(NA, fixed)
     grDev$spradius <- GrOpt$spheresOptions$spheresRad
     tmp <- diff(apply(specDecim$vb[1:3,], 1, range))
-    grDev$spradius[,1] <- GrOpt$spheresOptions$spheresRad[,1] * min(tmp)
-    grDev$labadj <- GrOpt$labelOptions$labelAdj * min(tmp)
+    grDev$spradius[,1] <- GrOpt$spheresOptions$spheresRad[,1] * mean(tmp)
+    grDev$labadj <- GrOpt$labelOptions$labelAdj * mean(tmp)
 
     # Centering of the meshes on the centroid of the decimated one
     tmp <- scale(t(specDecim$vb[-4, ]), scale = FALSE)
