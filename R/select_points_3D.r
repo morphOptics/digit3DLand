@@ -1,18 +1,21 @@
 ###########################
 PlacePt <- function(x, y, verts, norms, mesh, start){
-    # click point ----------------------------
+
+    # conversion window coordinates in 2D screen coordinates
+    # mesh -----------------------------------
     temp <- rgl.user2window(x = verts[, 1], y = verts[, 2],
                             z = verts[, 3], projection = start$projection)
-    # conversion window coordinates in 2D screen coordinates
     X <- temp[, 1] * start$viewport[3]
     Y <- (1 - temp[, 2]) * start$viewport[4]
+
+    # click point ----------------------------
     subS<-rgl.ids(type="subscene",subscene=0)
     if (dim(subS)[1]>1 & tail(subS[,1],1)==currentSubscene3d()){ # a single window, set on the second subscene
         width<-par3d()$windowRect[3]-par3d()$windowRect[1] # screen width => width/2: subscene width
-        X<-X-width/2
+        x<-x+width/2
     }
 
-    # 3D window coordinates of cliked point
+    # 3D window coordinates of click point
     X1 <- x / start$viewport[3]
     Y1 <- 1 - y / start$viewport[4]
 

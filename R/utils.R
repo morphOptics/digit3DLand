@@ -867,6 +867,7 @@ digitMesh.character<-function(sdir, fixed, idxFixed = 1:fixed, GrOpt=setGraphicO
             ans <- readline(prompt="Digitize next mesh ? Type y (for yes) or n (for no): ")
             if (ans=="n"){
                 interrupt<-TRUE
+                A<-A[,,1:cpt]
                 if (verbose[1]){
                     cat("\n")
                     cat("Loop to digitize all meshes: stops before the end ...")
