@@ -5,7 +5,8 @@
 \title{Digitizes several Meshes}
 \usage{
 \method{digitMesh}{character}(sdir, fixed, idxFixed = 1:fixed, GrOpt=setGraphicOptions(),
-          FiOpt=setFileOptions(sdir), DeOpt=setDecimOptions(), TeOpt=setTemplOptions(fixed), \dots)
+          FiOpt=setFileOptions(sdir), DeOpt=setDecimOptions(), TeOpt=setTemplOptions(fixed),
+          verbose = TRUE, \dots)
 }
 \arguments{
 \item{sdir}{A character value indicating either a mesh filename to decimate stored within the working directory,
@@ -24,6 +25,14 @@ will be digitized.}
 \item{DeOpt}{List defining options for mesh decimation. See \code{\link{setDecimOptions}} for details.}
 
 \item{TeOpt}{List defining options for template definition and use. See \code{\link{setTemplOptions}} for details.}
+
+\item{verbose}{Possible settings are: \cr
+- a logical value: in this case this value should be recycled in a 2 length vector indicating
+  for 2 levels of verbose if comments should be printed or not on screen as the computations are
+  processed. The firs level corresponds to comments specific to the functions from the
+  \code{digit3DLand} library, and the second one to comments specific to the functions from the
+  \code{Rvcg} library. \cr
+- a 2-length logical vector standing for the 2 possible levels of verbose.}
 
 \item{...}{Optional arguments used for mesh decimation. See \code{\link[Rvcg]{vcgQEdecim}} for details.}
 }

@@ -81,7 +81,7 @@ save.tps<-function(A,ID,file.name,LMheader="LM3",IDheader="ID",sdir=getwd(),app=
 #'          dimensions=3 by columns, and individual by slices).
 #' @usage
 #' read.tps(file.name, sdir = getwd(), LMheader = "LM3",
-#'          IDheader = "ID", SCheader = "SCALE", k = 3)
+#'          IDheader = "ID", SCheader = "SCALE", k = 3, quiet = FALSE)
 #' @param file.name A character value containing the TPS file name (with extension).
 #' @param sdir A character value indicating the path to the saving directory. \cr
 #'             Default: \code{getwd()}.
@@ -96,6 +96,8 @@ save.tps<-function(A,ID,file.name,LMheader="LM3",IDheader="ID",sdir=getwd(),app=
 #'                 Default: \code{"SC"}.
 #' @param k A numercial value (positive integer) indicating the dimensions of data. \cr
 #'          Default: \code{3}.
+#' @param quiet A logical value indicating if a line should be printed when the tps file is opened (see
+#'              \code{\link[base]{scan}}).
 #'
 #' @return A \emph{p*k*n} numerical array (\emph{p}: nb of landmarks, \emph{k}: nb of dimensions, \emph{n}: number
 #'         of individuals).
@@ -114,13 +116,16 @@ save.tps<-function(A,ID,file.name,LMheader="LM3",IDheader="ID",sdir=getwd(),app=
 #' # And finally, read it:
 #' A <- read.tps("TPSfile4randomMatrix.tps")
 #'
-read.tps<-function(file.name,sdir=getwd(),LMheader="LM3",IDheader="ID", SCheader="SCALE",k=3){
+read.tps<-function(file.name,sdir=getwd(),LMheader="LM3",IDheader="ID", SCheader="SCALE",k=3, quiet = FALSE){
     # read coordinates from a TPS file
+
     setwd(sdir)
+
+    quiet<-checkLogical(quiet,1)
 
     full.name<-paste(file.name,c(".tps","")[1+grepl(".tps",tolower(file.name))],sep="")
 
-    tmp<-scan(full.name,what="character")
+    tmp<-scan(full.name,what="character",quiet=quiet)
 
     idxID<-which(startsWith(tmp,paste0(IDheader,"=")))
     ID<-unlist(lapply(strsplit(tmp[idxID],"="),f<-function(L){L[[2]]}))
@@ -229,6 +234,9 @@ decimMesh<-function(M, ...){
 #' @param M A \code{mesh3d} object.
 #' @param tarface An integer numerical value for the targetted number of faces for decimation (if superior or equal
 #'                to the number of faces in \code{M}, then no decimation is performed).
+#' @param silent A logical value indicating if console output should be issued once the calls of
+#'               \code{\link[Rvcg]{vcgQEdecim}}, \code{\link[Rvcg]{vcgUpdateNormals}} and
+#'               \code{\link[Rvcg]{vcgClean}} are done.
 #' @param ... Optional arguments for \code{\link[Rvcg]{vcgQEdecim}}.
 #'
 #' @return A decimated \code{mesh3d} object.
@@ -237,14 +245,14 @@ decimMesh<-function(M, ...){
 #'
 #' @examples
 #'
-decimMesh.mesh3d<-function(M, tarface=15000, ...){
+decimMesh.mesh3d<-function(M, tarface=15000, silent = FALSE, ...){
 
     # decimation
-    decMesh <- vcgQEdecim(M, tarface, ...)
+    decMesh <- vcgQEdecim(M, tarface, silent = silent, ...)
     # update normals
-    decMesh <- vcgUpdateNormals(decMesh, silent = TRUE)
+    decMesh <- vcgUpdateNormals(decMesh, silent = silent)
     # Correction if mesh has non-manifold faces
-    decMesh<-vcgClean(decMesh,sel=2)
+    decMesh<-vcgClean(decMesh, sel = 2, silent = silent)
 
     return(decMesh)
 
@@ -252,7 +260,9 @@ decimMesh.mesh3d<-function(M, tarface=15000, ...){
 
 ##########################
 #' @title Decimates Several Meshes
-#' @description This function is a wrapper for \code{\link{decimMesh.mesh3d}} (itself a wrapper for
+#' @description Wrapper for the function \code{\link{decimMesh.mesh3d}} to decimate a set of mesh files contained
+#'              within a directory.
+#' @details This function is a wrapper for \code{\link{decimMesh.mesh3d}} (itself a wrapper for
 #'              \code{\link[Rvcg]{vcgQEdecim}}), calling it to treat a list of full mesh files, which will be
 #'              decimated the one after the other. It looks in the directory \code{sdir} for either a mesh filename
 #'              specified by the character value stored in \code{M}, or a subdirectory whose name stored in \code{M}
@@ -260,11 +270,11 @@ decimMesh.mesh3d<-function(M, tarface=15000, ...){
 #'              \code{target} argument, but other settings are possible (see \code{\link[Rvcg]{vcgQEdecim}}).
 #'              Decimated mesh are then saved either in the same directory than full meshes, by adding
 #'              a suffix in decimated mesh filenames (to distinguish them from full mesh filenames), or in a separate
-#'              subfolder (contained in the directory for full meshes). Both ply and stl mesh files are supported (
-#'              but decimated meshes will be uniquely saved as ply).
+#'              subfolder (contained in the directory for full meshes). Both ply and stl mesh files are supported
+#'              (but decimated meshes will be uniquely saved as ply).
 #' @usage
 #' \method{decimMesh}{character}(M, tarface=15000, sdir=getwd(), patt=".ply", deci.suffix=NULL,
-#'           deci.dir="DecimMesh", \dots)
+#'           deci.dir="DecimMesh", verbose = TRUE, \dots)
 #' @param M A character value indicating either a mesh filename to decimated within \code{sdir}, or a directory name
 #'          within \code{sdir} containing the subdirectory M with the mesh files to decimate.
 #' @param tarface An integer numerical value for the targetted number of faces for decimation (if superior or equal
@@ -277,6 +287,14 @@ decimMesh.mesh3d<-function(M, tarface=15000, ...){
 #' @param deci.dir A character value indicating the name of the subdirectory in \code{M} where the decimated mesh will
 #'                 be saved. By default, \code{deci.dir} is set to \code{"DecimMesh"}, meaning that a subdirectory
 #'                 named \code{"DecimMesh"} will be automatically created within \code{M} (if it doesn't exist yet).
+#' @param verbose Possible settings are: \cr
+#'                - a logical value: in this case this value should be recycled in a 2 length vector indicating
+#'                  for 2 levels of verbose if comments should be printed or not on screen as the computations are
+#'                  processed. The firs level corresponds to comments specific to the functions from the
+#'                  \code{digit3DLand} library, and the second one to comments specific to the functions from the
+#'                  \code{Rvcg} library. \cr
+#'                - a 2-length logical vector standing for the 2 possible levels of verbose.
+#'                a logical vector
 #' @param ... Optional arguments for \code{\link[Rvcg]{vcgQEdecim}}).
 #'
 #' @return A list of decimated \code{mesh3d} objects.
@@ -307,9 +325,17 @@ decimMesh.mesh3d<-function(M, tarface=15000, ...){
 #' ## End(Not run)
 #'
 decimMesh.character<-function(M, tarface=15000, sdir=getwd(), patt=".ply", deci.suffix=NULL,
-                              deci.dir="DecimMesh", ...){
+                              deci.dir="DecimMesh", verbose = c(TRUE,TRUE), ...){
 
     curdir<-getwd()
+
+    # check verbose
+    verbose<-checkLogical(verbose,c(1,2))
+
+    if (verbose[1]){
+        cat("\n")
+        cat("Checking arguments for decimMesh: in progress...")
+    }
 
     setDecimOptions(tarface=tarface, patt=patt)
     FiOpt<-setFileOptions(M=M, sdir=sdir, patt=patt, deci.suffix=deci.suffix, deci.dir=deci.dir)
@@ -320,22 +346,40 @@ decimMesh.character<-function(M, tarface=15000, sdir=getwd(), patt=".ply", deci.
 
     ID<-unlist(strsplit(full.files,patt)) # id for individual
 
+    if (verbose[1]){
+        cat("\r")
+        cat("Checking arguments for decimMesh: done!         ")
+        cat("\n")
+    }
+
     Ldeci<-list()
     attr(Ldeci,"full.dir")<-full.dir
     attr(Ldeci,"deci.dir")<-deci.dir
     deci.files<-rep(NA,length(full.files))
     for (i in 1:length(full.files)){
 
-        cat("\n")
-        cat(paste0("---------- Decimating mesh: ",full.files[i]," ----------"))
-        cat("\n")
+        if (verbose[1]){
+            cat("\n")
+            header<-paste0("---------- Mesh to decimate: ",full.files[i]," ----------")
+            cat(header)
+            cat("\n")
+            if (verbose[2]){
+                cat("\n")
+            }
+        }
+
 
         setwd(full.dir)
-        full<-vcgImport(full.files[i], updateNormals = TRUE, readcolor = TRUE, clean = TRUE)
+        full<-vcgImport(full.files[i], updateNormals = TRUE, readcolor = TRUE, clean = TRUE, silent = !verbose[2])
         if (!is.null(tarface) & tarface>dim(full$it)[2]){
             tarface<-dim(full$it)[2]
         }
-        deci<-decimMesh(full, tarface, ...)
+        deci<-decimMesh(full, tarface, silent = !verbose[2], ...)
+
+        if (verbose[1]){
+            cat("\n")
+            cat("Exporting decimated mesh: in progress...")
+        }
 
         setwd(deci.dir)
         if (!is.null(deci.suffix)){
@@ -353,6 +397,14 @@ decimMesh.character<-function(M, tarface=15000, sdir=getwd(), patt=".ply", deci.
         Ldeci[[i]]<-deci
 
         vcgPlyWrite(deci, filename=deci.files[i])
+
+        if (verbose[1]){
+            cat("\r")
+            cat("Exporting decimated mesh: done!         ")
+            cat("\n")
+            cat(rep("-",nchar(header)),sep="")
+            cat("\n")
+        }
 
     }
 
@@ -372,9 +424,9 @@ decimMesh.character<-function(M, tarface=15000, sdir=getwd(), patt=".ply", deci.
 #'          value (in this case user should refer to \code{\link{digitMesh.character}}).
 #' @param ... Additional arguments (all are not optional!) needed for mesh digitization.
 #'
-#' @return Either a numerical matrix (\code{\link{digitMesh.mesh3d}})) or a numerical array
+#' @return Either a numerical matrix (\code{\link{digitMesh.mesh3d}}) or a numerical array
 #'         (\code{\link{digitMesh.character}}).
-#' @seealso \code{\link{digitMesh.mesh3d}}) and \code{\link{digitMesh.character}}.
+#' @seealso \code{\link{digitMesh.mesh3d}} and \code{\link{digitMesh.character}}.
 #' @export
 #'
 digitMesh<-function(M, ...){
@@ -397,7 +449,8 @@ digitMesh<-function(M, ...){
 #'          the user to digitize or not the next mesh file.
 #' @usage
 #' \method{digitMesh}{character}(sdir, fixed, idxFixed = 1:fixed, GrOpt=setGraphicOptions(),
-#'           FiOpt=setFileOptions(sdir), DeOpt=setDecimOptions(), TeOpt=setTemplOptions(fixed), \dots)
+#'           FiOpt=setFileOptions(sdir), DeOpt=setDecimOptions(), TeOpt=setTemplOptions(fixed),
+#'           verbose = TRUE, \dots)
 #' @param sdir A character value indicating either a mesh filename to decimate stored within the working directory,
 #'             or a directory name within the working directory containing the subdirectory\code{M} with the mesh
 #'             files to decimate.
@@ -408,6 +461,13 @@ digitMesh<-function(M, ...){
 #' @param FiOpt List defining options for file opening and saving. See \code{\link{setFileOptions}} for details.
 #' @param DeOpt List defining options for mesh decimation. See \code{\link{setDecimOptions}} for details.
 #' @param TeOpt List defining options for template definition and use. See \code{\link{setTemplOptions}} for details.
+#' @param verbose Possible settings are: \cr
+#'                - a logical value: in this case this value should be recycled in a 2 length vector indicating
+#'                  for 2 levels of verbose if comments should be printed or not on screen as the computations are
+#'                  processed. The firs level corresponds to comments specific to the functions from the
+#'                  \code{digit3DLand} library, and the second one to comments specific to the functions from the
+#'                  \code{Rvcg} library. \cr
+#'                - a 2-length logical vector standing for the 2 possible levels of verbose.
 #' @param ... Optional arguments used for mesh decimation. See \code{\link[Rvcg]{vcgQEdecim}} for details.
 #' @return An array with \code{fixed} lines, 3 columns and \emph{n} slices (one for each treated mesh) containing the
 #'         3D coordinates of the digitized landmarks.
@@ -471,11 +531,20 @@ digitMesh<-function(M, ...){
 #'
 #' ## End(Not run)
 digitMesh.character<-function(sdir, fixed, idxFixed = 1:fixed, GrOpt=setGraphicOptions(),
-                              FiOpt=setFileOptions(sdir), DeOpt=setDecimOptions(), TeOpt=setTemplOptions(fixed),...){
+                              FiOpt=setFileOptions(sdir), DeOpt=setDecimOptions(), TeOpt=setTemplOptions(fixed),
+                              verbose=c(TRUE,TRUE), ...){
 
 
 
     curdir<-getwd()
+
+    # check verbose
+    verbose<-checkLogical(verbose,c(1,2))
+
+    if (verbose[1]){
+        cat("\n")
+        cat("Checking arguments for digitMesh: in progress...")
+    }
 
     # extract decimation options
     makeDecimation<-DeOpt$makeDecimation
@@ -493,12 +562,24 @@ digitMesh.character<-function(sdir, fixed, idxFixed = 1:fixed, GrOpt=setGraphicO
     append<-FiOpt$append
     overwrite<-FiOpt$overwrite
 
+    if (verbose[1]){
+        cat("\r")
+        cat("Checking arguments for digitMesh: done!         ")
+        cat("\n")
+    }
+
     # get back template coordinates (if any) if user go back to a partially processed directory
     ongoing<-FALSE
     if (is.character(saveTPS)){
         if (append & !overwrite){
+
+            if (verbose[1]){
+                cat("\n")
+                cat("Recovering previous digitized data: in progress...")
+            }
+
             ongoing<-TRUE
-            coord<-read.tps(saveTPS, sdir=FiOpt$full.dir)
+            coord<-read.tps(saveTPS, sdir=FiOpt$full.dir, quiet = !verbose[2])
             done.files<-paste0(dimnames(coord)[[3]],patt)
             if (is.character(TeOpt$template)){
                 # template is a particular mesh already digitized during the previous session
@@ -512,7 +593,22 @@ digitMesh.character<-function(sdir, fixed, idxFixed = 1:fixed, GrOpt=setGraphicO
             }
             # full.files: remaining mesh to digitize
             full.files<-setdiff(full.files,done.files)
+
+            if (verbose[1]){
+                if (verbose[2]){
+                    cat("Recovering previous digitized data: done!")
+                }else{
+                    cat("\r")
+                    cat("Recovering previous digitized data: done!         ")
+                }
+                cat("\n")
+            }
         }
+    }
+
+    if (verbose[1]){
+        cat("\n")
+        cat("Checking template options: in progress...")
     }
 
     # Now that full.files is defined, check if the supplied template filenemame (if any) is within those files
@@ -523,17 +619,43 @@ digitMesh.character<-function(sdir, fixed, idxFixed = 1:fixed, GrOpt=setGraphicO
     idxTemplate<-TeOpt$idxTemplate
     makeTempl<-TeOpt$makeTempl
 
+    if (verbose[1]){
+        cat("\r")
+        cat("Checking template options: done!         ")
+        cat("\n")
+    }
+
     if (makeDecimation & !sequential){
         # all meshes are decimated before to be digitized...
         if (!ongoing){
+
+            if (verbose[1]){
+                cat("\n")
+                cat("Decimation of all meshes: starts...")
+            }
+
             #... but only if the folder is browsed for the first time
-            Ldeci<-decimMesh(strsplit(full.dir,paste0(sdir,"/"))[[1]][2], tarface=tarface, sdir=sdir, patt=patt,
-                             deci.suffix=deci.suffix, deci.dir=strsplit(deci.dir,paste0(full.dir,"/"))[[1]][2], ...)
+            Ldeci<-decimMesh(strsplit(full.dir, paste0(sdir, "/"))[[1]][2], tarface = tarface, sdir = sdir,
+                             patt = patt, deci.suffix = deci.suffix,
+                             deci.dir = strsplit(deci.dir, paste0(full.dir, "/"))[[1]][2], verbose = verbose, ...)
+
+            if (verbose[1]){
+                cat("\n")
+                cat("Decimation of all meshes: ends!")
+            }
+
+
         }
     }
 
     if (!makeDecimation | (makeDecimation & !sequential)){
         # either decimation is not needed, or it is processed in a single pass before digitization
+
+        if (verbose[1]){
+            cat("\n")
+            cat("Checking for filename correspondence among full and decimated meshes: in progress...")
+        }
+
         if (deci.dir==full.dir){
             # decimated and full meshes are stored in the same folder, differenciating by a suffix in the filenames
             # for decimated meshes
@@ -583,14 +705,30 @@ digitMesh.character<-function(sdir, fixed, idxFixed = 1:fixed, GrOpt=setGraphicO
         ID1<-unlist(strsplit(full.files,patt))
         ID2<-unlist(strsplit(deci.files,paste0(deci.suffix,patt)))
         ID<-test.ID(ID1,ID2)
+
+        if (verbose[1]){
+            cat("\r")
+            cat("Checking for filename correspondence among full and decimated meshes: done!         ")
+            cat("\n")
+        }
+
     }else{
-        # sequential decimation: will be processed seprately for each mesh to digitize
+        # sequential decimation: will be processed separately for each mesh to digitize
         setwd(full.dir)
+        if (verbose[1]){
+            cat("\n")
+            cat("Extracting mesh ID: in progress...")
+        }
         if (!ongoing){
             full.files<-list.files(pattern=patt,ignore.case=TRUE)
         }
         # extract identifiers for meshes
         ID<-unlist(strsplit(full.files,patt))
+        if (verbose[1]){
+            cat("\r")
+            cat("Extracting mesh ID: done!         ")
+            cat("\n")
+        }
     }
 
     # check if at least one mesh file was found
@@ -603,30 +741,92 @@ digitMesh.character<-function(sdir, fixed, idxFixed = 1:fixed, GrOpt=setGraphicO
     # for mesh digitizing (begining)
     idxMesh<-1:n
     if (makeTempl & is.character(template)){
+        if (verbose[1]){
+            cat("\n")
+            cat("Extracting individual for template: in progress...")
+        }
         idx_tpl<-which(full.files==template)
         idxMesh<-c(idx_tpl,sort(setdiff(1:n,idx_tpl)))
+        if (verbose[1]){
+            cat("\r")
+            cat("Extracting individual for template: done!         ")
+            cat("\n")
+        }
     }
 
     # loop for mesh digitizing (and possibly mesh decimation if sequential=TRUE)
+    if (verbose[1]){
+        cat("\n")
+        cat("Loop to digitize all meshes: starts...")
+        cat("\n")
+    }
     A<-array(NA,c(fixed,3,n))
     cpt<-0
+    interrupt<-FALSE
     for (i in idxMesh){
         cpt<-cpt+1
 
         # import full mesh
         setwd(full.dir)
-        full<-vcgImport(full.files[i], updateNormals = TRUE, readcolor = TRUE, clean = TRUE)
+        ff<-full.files[i]
+        if (verbose[1]){
+            header<-paste0("********** Mesh to digitize: ",ff," **********")
+            cat("\n")
+            cat(rep("*",nchar(header)),sep="")
+            cat("\n")
+            cat(header)
+            cat("\n")
+            cat(rep("*",nchar(header)),sep="")
+            cat("\n")
+            cat("\n")
+            cat("Full resolution mesh opening: starts...")
+            if (verbose[2]){
+                cat("\n")
+                cat("\n")
+            }
+        }
+        full<-vcgImport(ff, updateNormals = TRUE, readcolor = TRUE, clean = TRUE, silent = !verbose[2])
+        if (verbose[1]){
+            if (verbose[2]){
+                cat("\n")
+                cat("Full resolution mesh opening: done!")
+            }else{
+                cat("\r")
+                cat("Full resolution mesh opening: done!    ")
+            }
+            cat("\n")
+        }
 
         # create or import decimated mesh
         if (makeDecimation & sequential){
             # sequential decimation: decimate full mesh
+            if (verbose[1]){
+                cat("\n")
+                cat("Full resolution mesh decimation: starts...")
+                cat("\n")
+            }
             deci<-decimMesh(full.files[i], tarface=tarface, sdir=full.dir, patt=patt, deci.suffix=deci.suffix,
-                            deci.dir=strsplit(deci.dir,paste0(full.dir,"/"))[[1]][2], ...)
+                            deci.dir=strsplit(deci.dir,paste0(full.dir,"/"))[[1]][2], verbose=verbose, ...)
             deci<-deci[[1]]
+            if (verbose[1]){
+                cat("\n")
+                cat("Full resolution mesh decimation: done!")
+                cat("\n")
+            }
         }else{
             # import decimated mesh
+            if (verbose[1]){
+                cat("\n")
+                cat("Importing decimated mesh: in progress...")
+                cat("\n")
+            }
             setwd(deci.dir)
-            deci<-vcgImport(deci.files[i], updateNormals = TRUE, readcolor = TRUE, clean = TRUE)
+            deci<-vcgImport(deci.files[i], updateNormals = TRUE, readcolor = TRUE, clean = TRUE, silent = !verbose[2])
+            if (verbose[1]){
+                cat("\n")
+                cat("Importing decimated mesh: done!         ")
+                cat("\n")
+            }
         }
         setwd(curdir)
 
@@ -635,23 +835,23 @@ digitMesh.character<-function(sdir, fixed, idxFixed = 1:fixed, GrOpt=setGraphicO
             # use template (template being a filename)
             if (cpt==1){
                 # the first indivual is the template
-                A[,,cpt]<-digitMesh(full, deci, fixed=fixed, idxFixed=idxFixed, GrOpt=GrOpt)
+                A[,,cpt]<-digitMesh(full, deci, fixed=fixed, idxFixed=idxFixed, GrOpt=GrOpt, verbose=verbose)
                 # we store its corrdinates for use with the next meshes to digitize
                 tpl<-A[,,cpt]
             }else{
                 # the other ones use this template
                 A[,,cpt]<-digitMesh(full, deci, fixed=fixed, idxFixed=idxFixed, templateCoord = tpl,
-                                    idxTemplate = idxTemplate, GrOpt=GrOpt)
+                                    idxTemplate = idxTemplate, GrOpt=GrOpt, verbose=verbose)
             }
         }else{
 
             if(is.matrix(template)){
                 # use template (template being a matrix)
                 A[,,cpt]<-digitMesh(full, deci, fixed=fixed, idxFixed=idxFixed, templateCoord = template,
-                                    idxTemplate = idxTemplate, GrOpt=GrOpt)
+                                    idxTemplate = idxTemplate, GrOpt=GrOpt, verbose=verbose)
             }else{
                 # don't use template
-                A[,,cpt]<-digitMesh(full, deci, fixed=fixed, idxFixed=idxFixed, GrOpt=GrOpt)
+                A[,,cpt]<-digitMesh(full, deci, fixed=fixed, idxFixed=idxFixed, GrOpt=GrOpt, verbose=verbose)
             }
         }
 
@@ -666,14 +866,27 @@ digitMesh.character<-function(sdir, fixed, idxFixed = 1:fixed, GrOpt=setGraphicO
         if (cpt<length(idxMesh)){
             ans <- readline(prompt="Digitize next mesh ? Type y (for yes) or n (for no): ")
             if (ans=="n"){
+                interrupt<-TRUE
+                if (verbose[1]){
+                    cat("\n")
+                    cat("Loop to digitize all meshes: stops before the end ...")
+                    cat("\n")
+                    cat("\n")
+                    cat("=> The following files will remain to be digitized:")
+                    rem.files<-full.files[idxMesh[(cpt+1):n]]
+                    cat(paste0("\n"," - ",rem.files))
+                    cat("\n")
+                    cat("\n")
+                }
                 break
             }
         } else {
-            cat("Last file reached: digititinzg is ending...")
+            if (verbose[1]){
+                cat("Last file reached: digitization loop is ending...")
+                cat("\n")
+                cat("\n")
+            }
         }
-        cat("\n")
-
-
     }
 
     setwd(curdir)

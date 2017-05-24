@@ -107,7 +107,7 @@
 #'          mesh centroid.
 #' @usage
 #' \method{digitMesh}{mesh3d}(specFull, specDecim, fixed, idxFixed = 1:fixed, templateCoord = NULL,
-#'           idxTemplate = NULL, GrOpt = setGraphicOptions())
+#'           idxTemplate = NULL, GrOpt = setGraphicOptions(), verbose = TRUE)
 #' @param specFull Full resolution mesh3d object.
 #' @param specDecim Decimated resolution mesh3d object, as obtained through \code{\link{decimMesh.mesh3d}} for example.
 #' @param fixed Number of landmarks to digitize.
@@ -130,13 +130,46 @@
 #'                    Default: \code{NULL} => no template will be used, but corrected to \code{1:4} if
 #'                             \code{templateCoord} is provided, but not \code{idxTemplate}.
 #' @param GrOpt List defining options for graphic rendering. See \code{\link{setGraphicOptions}} for details.
+#' @param verbose Possible settings are: \cr
+#'                - a logical value: in this case this value should be recycled in a 2 length vector indicating
+#'                  for 2 levels of verbose if comments should be printed or not on screen as the computations are
+#'                  processed. The firs level corresponds to comments specific to the functions from the
+#'                  \code{digit3DLand} library, and the second one to comments specific to the functions from the
+#'                  \code{Rvcg} library. \cr
+#'                - a 2-length logical vector standing for the 2 possible levels of verbose.
 #' @return A numeric matrix with \code{fixed} lines and 3 columns containing the 3D coordinates of the digitized
 #'         landmarks.
 #' @seealso \code{\link{digitMesh.character}}.
 #' @export
 #'
 digitMesh.mesh3d <- function (specFull, specDecim, fixed, idxFixed = 1:fixed, templateCoord = NULL, idxTemplate = NULL,
-                              GrOpt=setGraphicOptions()) {
+                              GrOpt=setGraphicOptions(), verbose=c(TRUE,TRUE)) {
+
+    # check verbose
+    verbose<-checkLogical(verbose,c(1,2))
+
+    # Correction if mesh has non-manifold faces (ie faces made of non-manifold edges, ie edges shared by more than 2 faces)
+    # Correction needed for the ordering of the intersection points among mesh and planes
+    if (verbose[1]){
+        cat("\n")
+        cat("Checking full & decimated meshes: starts...")
+        if (verbose[2]){
+            cat("\n")
+        }
+    }
+    specFull <- vcgUpdateNormals(specFull, silent = !verbose[2])
+    specFull<-vcgClean(specFull, sel=2, silent=!verbose[2])
+    specDecim <- vcgUpdateNormals(specDecim, silent = !verbose[2])
+    specDecim<-vcgClean(specDecim, sel=2, silent=!verbose[2])
+    if (verbose[1]){
+        if (!verbose[2]){
+            cat("\r")
+        }
+        cat("Checking full & decimated meshes: done!    ")
+        cat("\n")
+        cat("\n")
+        cat("Initializations for digitMesh.mesh3d: in progress...")
+    }
 
     if (!(any(class(specFull) == "mesh3d")))
         stop("specFull must have class \"mesh3d\".")
@@ -153,11 +186,6 @@ digitMesh.mesh3d <- function (specFull, specDecim, fixed, idxFixed = 1:fixed, te
         V<-c("pc2-pc3","pc1-pc3","pc1-pc2")
         idxPlanes<-which(is.element(V,tolower(GrOpt$PCplanesOptions$PCplanesDraw)))
     }
-
-    # Correction if mesh has non-manifold faces (ie faces made of non-manifold edges, ie edges shared by more than 2 faces)
-    # Correction needed for the ordering of the intersection points among mesh and planes
-    specFull<-vcgClean(specFull,sel=2)
-    specDecim<-vcgClean(specDecim,sel=2)
 
     if (missing(fixed)) {
         stop("missing number of landmarks to digitalize")
@@ -197,6 +225,14 @@ digitMesh.mesh3d <- function (specFull, specDecim, fixed, idxFixed = 1:fixed, te
     specDecim$vb[-4, ] <- t(tmp)
     specFull$vb[-4, ] <- sweep(specFull$vb[-4, ], 1, Trans1)
 
+    if (verbose[1]){
+        cat("\r")
+        cat("Initializations for digitMesh.mesh3d: done!         ")
+        cat("\n")
+        cat("\n")
+        cat("Plotting decimated mesh: in progress...")
+    }
+
     # plot decimated mesh
     d1 <- Clear3d()
     par3d(windowRect = grDev$winOptions$winSize[1, ])
@@ -220,14 +256,30 @@ digitMesh.mesh3d <- function (specFull, specDecim, fixed, idxFixed = 1:fixed, te
     R <- rotMajorAxes(specDecim$vb[1:3, ])
     par3d(userMatrix = R)
 
+    if (verbose[1]){
+        cat("\r")
+        cat("Plotting decimated mesh: done!         ")
+        cat("\n")
+    }
+
     # plot of orthogonal planes: they are initialized as major axes of the mesh
     orthoplanes <- list(vInter=NULL, vPlanes = NULL)
     if (length(idxPlanes)>0){
-        orthoplanes <- DrawOrthoplanes(mesh=specDecim, idxPlanes=idxPlanes, grDev=grDev)
+        if (verbose[1]){
+            cat("\n")
+            cat("Plotting mesh/plane intersections: starts...")
+            cat("\n")
+        }
+        orthoplanes <- DrawOrthoplanes(mesh=specDecim, idxPlanes=idxPlanes, grDev=grDev, verbose=verbose)
         if (ncol(specDecim$vb)!=ncol(specFull$vb)){
             # computation of intersections among full mesh and fixed planes
             orthoplanes <- DrawOrthoplanes(mesh=specFull,idxPlanes=idxPlanes,planes=orthoplanes$vPlanes,
-                                           interactive=FALSE,is.plot=FALSE, grDev=grDev)
+                                           interactive=FALSE,is.plot=FALSE, grDev=grDev, verbose=verbose)
+        }
+        if (verbose[1]){
+            cat("\n")
+            cat("Plotting mesh/plane intersections: done!")
+            cat("\n")
         }
     }
 
@@ -235,11 +287,24 @@ digitMesh.mesh3d <- function (specFull, specDecim, fixed, idxFixed = 1:fixed, te
     A <- Adeci <- matrix(NA, fixed, 3, dimnames = list(1:fixed, c("x","y","z")))
     attr(A, which = "spec.name") <- spec.name
 
+    if (verbose[1]){
+        cat("\n")
+        cat("Loop for landmark digitization: starts...")
+        cat("\n")
+        cat("Left click to rotate, scroll wheel to zoom, (for mac users: cmd +) right click to position a landmark.")
+        cat("\n")
+    }
     Idx <- setdiff(1:fixed, idxFixed[idxTemplate])
     for (i in 1:fixed){
         if (i <= length(idxTemplate)){
             # Place 1st points require to adjust the template if it exist otherwise take all pts
             idx_pts <- idxFixed[idxTemplate[i]]
+            if (verbose[1]){
+                cat("\n")
+                txt<-paste0("Please digitize landmark: ",idx_pts)
+                cat(txt)
+            }
+
             res <- SelectPoints3d(mesh = specDecim, A = A, IdxPts = idx_pts, grDev = grDev, whichMesh = 1)
 
             Pt <- res$coords
@@ -248,6 +313,11 @@ digitMesh.mesh3d <- function (specFull, specDecim, fixed, idxFixed = 1:fixed, te
         } else {
             # Selection of remaining landmarks (if any)
             idx_pts <- idxFixed[Idx[i-length(idxTemplate)]]
+            if (verbose[1]){
+                cat("\n")
+                txt<-paste0("Please digitize landmark: ",idx_pts)
+                cat(txt)
+            }
             #Pt <- B[idx_pts, , drop = FALSE]
             Pt <- B[idx_pts, ]
         }
@@ -265,6 +335,13 @@ digitMesh.mesh3d <- function (specFull, specDecim, fixed, idxFixed = 1:fixed, te
         # Graphics
         grDev <- plot.landmark(Adeci[idx_pts, ], d1, idx_pts, grDev, exist = TRUE)
 
+        if (verbose[1]){
+            cat("\r")
+            txt<-paste0("Please digitize landmark: ",idx_pts)
+            txt<-paste0("Landmark ",idx_pts," has been digitized.")
+            cat(txt)
+        }
+
         if(!is.null(templateCoord) & i==length(idxTemplate)){
 
             # all reference points of the template are placed
@@ -278,8 +355,24 @@ digitMesh.mesh3d <- function (specFull, specDecim, fixed, idxFixed = 1:fixed, te
             for (ii in 1:length(vv)){
                 grDev <- plot.landmark(t(ptsB$vb[1:3, vv[ii]]), d1, vv[ii], grDev, exist = FALSE)
             }
-            rgl.viewpoint(userMatrix = R)
+            #rgl.viewpoint(userMatrix = R)
         }
+    }
+
+    if (verbose[1]){
+        cat("\n")
+        cat("\n")
+        cat("Loop for landmark digitization: ends.")
+        cat("\n")
+        cat("\n")
+        cat("Now, you can:")
+        cat("\n")
+        cat(" - validate your digitization by closing the graphic device")
+        cat("\n")
+        cat(" - or modify some landmarks if necessary (just click a on a landmark to modify and redigitize it,")
+        cat("\n")
+        cat("   once all landmraks are correct, just close the graphic device).")
+        cat("\n")
     }
 
     # Now, wait if the user want changed any landmark. Stop when the graphics is closed
@@ -288,9 +381,21 @@ digitMesh.mesh3d <- function (specFull, specDecim, fixed, idxFixed = 1:fixed, te
     while((Stop==0)){
         # clicks point on the decimated mesh
         res <- SelectPoints3d(mesh = specDecim, modify = TRUE, A = Adeci, grDev = grDev, whichMesh = 1)
-        if (res$isClosed) break
+        if (res$isClosed){
+            if (verbose[1]){
+                cat("\n")
+            }
+            break
+        }
 
         idx_pts <- res$Idx
+
+        if (verbose[1]){
+            cat("\n")
+            txt<-paste0("Landmark to modify: ",idx_pts)
+            cat(txt)
+        }
+
         # zoom on full resolution mesh
         Pt2 <- c(project(t(res$coords), specFull, trans = TRUE)) # added
         res2 <- SetPtZoom(specFull=specFull, Pt = Pt2, IdxPts = idx_pts,
@@ -306,10 +411,23 @@ digitMesh.mesh3d <- function (specFull, specDecim, fixed, idxFixed = 1:fixed, te
         grDev$vSp[idx_pts] <- res$sp
         grDev$vTx[idx_pts] <- res$tx
         grDev <- plot.landmark(Adeci[idx_pts, ], d1, idx_pts, grDev, exist = TRUE)
+
+        if (verbose[1]){
+            cat("\r")
+            txt<-paste0("Landmark ",idx_pts," has been modified.")
+            cat(txt)
+        }
+
     }
 
     # restore position
     A <- A + matrix(Trans1, fixed, 3, byrow=TRUE)
+
+    if (verbose[1]){
+        cat("\n")
+        cat("Mesh digitization is ended!")
+        cat("\n")
+    }
 
     return(A)
 }

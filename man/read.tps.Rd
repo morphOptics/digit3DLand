@@ -5,7 +5,7 @@
 \title{Reads 3D Coordinates from a TPS File}
 \usage{
 read.tps(file.name, sdir = getwd(), LMheader = "LM3",
-         IDheader = "ID", SCheader = "SCALE", k = 3)
+         IDheader = "ID", SCheader = "SCALE", k = 3, quiet = FALSE)
 }
 \arguments{
 \item{file.name}{A character value containing the TPS file name (with extension).}
@@ -27,6 +27,9 @@ Default: \code{"SC"}.}
 
 \item{k}{A numercial value (positive integer) indicating the dimensions of data. \cr
 Default: \code{3}.}
+
+\item{quiet}{A logical value indicating if a line should be printed when the tps file is opened (see
+\code{\link[base]{scan}}).}
 }
 \value{
 A \emph{p*k*n} numerical array (\emph{p}: nb of landmarks, \emph{k}: nb of dimensions, \emph{n}: number

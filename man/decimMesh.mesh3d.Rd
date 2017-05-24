@@ -4,13 +4,17 @@
 \alias{decimMesh.mesh3d}
 \title{Decimates a Mesh}
 \usage{
-\method{decimMesh}{mesh3d}(M, tarface = 15000, ...)
+\method{decimMesh}{mesh3d}(M, tarface = 15000, silent = FALSE, ...)
 }
 \arguments{
 \item{M}{A \code{mesh3d} object.}
 
 \item{tarface}{An integer numerical value for the targetted number of faces for decimation (if superior or equal
 to the number of faces in \code{M}, then no decimation is performed).}
+
+\item{silent}{A logical value indicating if console output should be issued once the calls of
+\code{\link[Rvcg]{vcgQEdecim}}, \code{\link[Rvcg]{vcgUpdateNormals}} and
+\code{\link[Rvcg]{vcgClean}} are done.}
 
 \item{...}{Optional arguments for \code{\link[Rvcg]{vcgQEdecim}}.}
 }

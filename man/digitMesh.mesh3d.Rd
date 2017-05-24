@@ -5,7 +5,7 @@
 \title{Digitizes a Mesh}
 \usage{
 \method{digitMesh}{mesh3d}(specFull, specDecim, fixed, idxFixed = 1:fixed, templateCoord = NULL,
-          idxTemplate = NULL, GrOpt = setGraphicOptions())
+          idxTemplate = NULL, GrOpt = setGraphicOptions(), verbose = TRUE)
 }
 \arguments{
 \item{specFull}{Full resolution mesh3d object.}
@@ -36,6 +36,14 @@ Default: \code{NULL} => no template will be used, but corrected to \code{1:4} if
          \code{templateCoord} is provided, but not \code{idxTemplate}.}
 
 \item{GrOpt}{List defining options for graphic rendering. See \code{\link{setGraphicOptions}} for details.}
+
+\item{verbose}{Possible settings are: \cr
+- a logical value: in this case this value should be recycled in a 2 length vector indicating
+  for 2 levels of verbose if comments should be printed or not on screen as the computations are
+  processed. The firs level corresponds to comments specific to the functions from the
+  \code{digit3DLand} library, and the second one to comments specific to the functions from the
+  \code{Rvcg} library. \cr
+- a 2-length logical vector standing for the 2 possible levels of verbose.}
 }
 \value{
 A numeric matrix with \code{fixed} lines and 3 columns containing the 3D coordinates of the digitized

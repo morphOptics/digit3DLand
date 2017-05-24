@@ -5,7 +5,7 @@
 \title{Decimates Several Meshes}
 \usage{
 \method{decimMesh}{character}(M, tarface=15000, sdir=getwd(), patt=".ply", deci.suffix=NULL,
-          deci.dir="DecimMesh", \dots)
+          deci.dir="DecimMesh", verbose = TRUE, \dots)
 }
 \arguments{
 \item{M}{A character value indicating either a mesh filename to decimated within \code{sdir}, or a directory name
@@ -26,12 +26,25 @@ before the \code{".ply"} exension. Set to \code{NULL} by default.}
 be saved. By default, \code{deci.dir} is set to \code{"DecimMesh"}, meaning that a subdirectory
 named \code{"DecimMesh"} will be automatically created within \code{M} (if it doesn't exist yet).}
 
+\item{verbose}{Possible settings are: \cr
+- a logical value: in this case this value should be recycled in a 2 length vector indicating
+  for 2 levels of verbose if comments should be printed or not on screen as the computations are
+  processed. The firs level corresponds to comments specific to the functions from the
+  \code{digit3DLand} library, and the second one to comments specific to the functions from the
+  \code{Rvcg} library. \cr
+- a 2-length logical vector standing for the 2 possible levels of verbose.
+a logical vector}
+
 \item{...}{Optional arguments for \code{\link[Rvcg]{vcgQEdecim}}).}
 }
 \value{
 A list of decimated \code{mesh3d} objects.
 }
 \description{
+Wrapper for the function \code{\link{decimMesh.mesh3d}} to decimate a set of mesh files contained
+             within a directory.
+}
+\details{
 This function is a wrapper for \code{\link{decimMesh.mesh3d}} (itself a wrapper for
              \code{\link[Rvcg]{vcgQEdecim}}), calling it to treat a list of full mesh files, which will be
              decimated the one after the other. It looks in the directory \code{sdir} for either a mesh filename
@@ -40,8 +53,8 @@ This function is a wrapper for \code{\link{decimMesh.mesh3d}} (itself a wrapper 
              \code{target} argument, but other settings are possible (see \code{\link[Rvcg]{vcgQEdecim}}).
              Decimated mesh are then saved either in the same directory than full meshes, by adding
              a suffix in decimated mesh filenames (to distinguish them from full mesh filenames), or in a separate
-             subfolder (contained in the directory for full meshes). Both ply and stl mesh files are supported (
-             but decimated meshes will be uniquely saved as ply).
+             subfolder (contained in the directory for full meshes). Both ply and stl mesh files are supported
+             (but decimated meshes will be uniquely saved as ply).
 }
 \examples{
 

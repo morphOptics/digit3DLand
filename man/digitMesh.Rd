@@ -13,7 +13,7 @@ value (in this case user should refer to \code{\link{digitMesh.character}}).}
 \item{...}{Additional arguments (all are not optional!) needed for mesh digitization.}
 }
 \value{
-Either a numerical matrix (\code{\link{digitMesh.mesh3d}})) or a numerical array
+Either a numerical matrix (\code{\link{digitMesh.mesh3d}}) or a numerical array
         (\code{\link{digitMesh.character}}).
 }
 \description{
@@ -25,5 +25,5 @@ For details, user should refer to the 2 methods \code{\link{digitMesh.mesh3d}} (
          \code{mesh3d} object) and \code{\link{digitMesh.character}} (to digitize a set of mesh files).
 }
 \seealso{
-\code{\link{digitMesh.mesh3d}}) and \code{\link{digitMesh.character}}.
+\code{\link{digitMesh.mesh3d}} and \code{\link{digitMesh.character}}.
 }

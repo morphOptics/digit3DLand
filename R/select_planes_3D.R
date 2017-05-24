@@ -1,5 +1,5 @@
 ###########################
-DrawOrthoplanes <- function(mesh,idxPlanes=1:3, planes=NULL, interactive=TRUE, is.plot=TRUE, grDev=grDev) {
+DrawOrthoplanes <- function(mesh,idxPlanes=1:3, planes=NULL, interactive=TRUE, is.plot=TRUE, grDev=grDev, verbose) {
 
     # Two posssible usages:
     # 1/ DrawOrthoplanes(mesh)
@@ -23,6 +23,15 @@ DrawOrthoplanes <- function(mesh,idxPlanes=1:3, planes=NULL, interactive=TRUE, i
 
         # Planes
         sv <- svd(crossprod(pts))
+    }
+
+    if (verbose[1]){
+        cat("\n")
+        if (interactive){
+            cat("Computing decimated mesh/major plane intersections: in progress...")
+        }else{
+            cat("Computing full mesh/major plane intersections: in progress...")
+        }
     }
 
     # Compute and draw the intersection mesh/planes
@@ -112,10 +121,20 @@ DrawOrthoplanes <- function(mesh,idxPlanes=1:3, planes=NULL, interactive=TRUE, i
         }
     }
 
+    if (verbose[1]){
+        cat("\r")
+        if (interactive){
+            cat("Computing decimated mesh/major plane intersections: done!         ")
+        }else{
+            cat("Computing full mesh/major plane intersections: done!         ")
+        }
+        cat("\n")
+    }
+
     if (interactive){
         # User interaction: manual rotation of the mesh (the orthogonal planes being fixed)
         # until the wanted orientation
-        return(RotateMeshPlane3d(mesh, planes = ptsPlanes, vInter, idxPlanes, grDev))
+        return(RotateMeshPlane3d(mesh, planes = ptsPlanes, vInter, idxPlanes, grDev, verbose))
     }else{
         return(list(vInter=vInter))
     }
@@ -123,11 +142,12 @@ DrawOrthoplanes <- function(mesh,idxPlanes=1:3, planes=NULL, interactive=TRUE, i
 }
 
 #############################################################
-RotateMeshPlane3d <- function(mesh, planes, vInter, idxPlanes, grDev) {
+RotateMeshPlane3d <- function(mesh, planes, vInter, idxPlanes, grDev, verbose) {
     Stop <- 0
     # stop when the rotation is validated by ESC
     while (Stop==0) {
-        temp <- selectPlanes(button="right", mesh=mesh, planes=planes, vInter=vInter, idxPlanes=idxPlanes, grDev=grDev)
+        temp <- selectPlanes(button="right", mesh=mesh, planes=planes, vInter=vInter, idxPlanes=idxPlanes, grDev=grDev,
+                             verbose=verbose)
         if (temp$isDone){
             # because of rgl.... need to close twice the window
             if (temp$isClosed){
@@ -140,7 +160,7 @@ RotateMeshPlane3d <- function(mesh, planes, vInter, idxPlanes, grDev) {
 }
 
 #############################################################
-selectPlanes<-function (button = c("left", "middle", "right"), mesh, planes, vInter, idxPlanes, grDev) {
+selectPlanes<-function (button = c("left", "middle", "right"), mesh, planes, vInter, idxPlanes, grDev, verbose) {
 
     # Re-use of the rgl:::mouseTrackball (from binary) normally used to manually rotate the mesh, and disorted here
     # so that depending on this manual rotation (through the mouse right button), plane(s) seem to stay fix relative
@@ -369,6 +389,16 @@ selectPlanes<-function (button = c("left", "middle", "right"), mesh, planes, vIn
     # validate plane positions
     dev<-rgl.cur()
 
+    if (verbose[1]){
+        cat("\n")
+        cat("Loop for mesh/plane adjustment: starts...")
+        cat("\n")
+        cat("Left click to rotate in block the mesh and the planes, scroll wheel to zoom,")
+        cat("\n")
+        cat("(for mac users: cmd +) right click to rotate separately the mesh and the planes.")
+        cat("\n")
+    }
+
     while (dev==rgl.cur()){
         result <- rgl:::rgl.selectstate()
         # if ESC -> get-out
@@ -382,6 +412,11 @@ selectPlanes<-function (button = c("left", "middle", "right"), mesh, planes, vIn
             isDone<-TRUE
             return(list(isDone=isDone,isClosed=TRUE))
         }
+    }
+
+    if (verbose[1]){
+        cat("Loop for mesh/plane adjustment: stops... ")
+        cat("\n")
     }
 
     # Otherwise, the mouse action for right click is reinitialized to zoom
