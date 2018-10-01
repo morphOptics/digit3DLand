@@ -137,13 +137,24 @@
 #'                  \code{digit3DLand} library, and the second one to comments specific to the functions from the
 #'                  \code{Rvcg} library. \cr
 #'                - a 2-length logical vector standing for the 2 possible levels of verbose.
+#' @param spec.name Attribute for the returned A array indicating the specimen name. Possible settings are: \cr
+#'                  - NULL (default): array name is set as the mesh3d object name \cr
+#'                  - a character value given the array name.
 #' @return A numeric matrix with \code{fixed} lines and 3 columns containing the 3D coordinates of the digitized
 #'         landmarks.
 #' @seealso \code{\link{digitMesh.character}}.
 #' @export
 #'
 digitMesh.mesh3d <- function (specFull, specDecim, fixed, idxFixed = 1:fixed, templateCoord = NULL, idxTemplate = NULL,
-                              GrOpt=setGraphicOptions(), verbose=c(TRUE,TRUE)) {
+                              GrOpt=setGraphicOptions(), verbose=c(TRUE,TRUE), spec.name=NULL) {
+
+
+    # check mesh
+    if (!(any(class(specFull) == "mesh3d")))
+        stop("specFull must have class \"mesh3d\".")
+    if (is.null(spec.name)){
+        spec.name <- deparse(substitute(specFull))
+    }
 
     # check verbose
     verbose<-checkLogical(verbose,c(1,2))
@@ -171,9 +182,6 @@ digitMesh.mesh3d <- function (specFull, specDecim, fixed, idxFixed = 1:fixed, te
         cat("Initializations for digitMesh.mesh3d: in progress...")
     }
 
-    if (!(any(class(specFull) == "mesh3d")))
-        stop("specFull must have class \"mesh3d\".")
-    spec.name <- deparse(substitute(specFull))
 
     # check which setting of GrOpt$PCplanesDraw is called, and set idxPlanes consequently
     if(is.logical(GrOpt$PCplanesOptions$PCplanesDraw)){

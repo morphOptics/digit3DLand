@@ -44,6 +44,10 @@ Default: \code{NULL} => no template will be used, but corrected to \code{1:4} if
   \code{digit3DLand} library, and the second one to comments specific to the functions from the
   \code{Rvcg} library. \cr
 - a 2-length logical vector standing for the 2 possible levels of verbose.}
+
+\item{spec.name}{Attribute for the returned A array indicating the specimen name. Possible settings are: \cr
+- NULL (default): array name is set as the mesh3d object name \cr
+- a character value given the array name.}
 }
 \value{
 A numeric matrix with \code{fixed} lines and 3 columns containing the 3D coordinates of the digitized

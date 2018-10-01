@@ -118,7 +118,7 @@ mesh dimensions(so better values are close to 0). Possible settings: \cr
   (those values will be recycled for the full mesh); \cr
 - a unique value for the setting before and after the user validation, and for the decimated and
   the full mesh. \cr
-Default: \code{0.02}.}
+Default: \code{0.01}.}
 
 \item{spheresColor}{A character vector or matrix taking values within \code{\link[grDevices]{colors}}() indicating
 with which color the spheres figuring the landmarks should be plotted. See \code{spheresRad}

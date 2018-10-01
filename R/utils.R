@@ -762,6 +762,7 @@ digitMesh.character<-function(sdir, fixed, idxFixed = 1:fixed, GrOpt=setGraphicO
     }
     A<-array(NA,c(fixed,3,n))
     cpt<-0
+    Vspec.name <- rep(0,n)
     interrupt<-FALSE
     for (i in idxMesh){
         cpt<-cpt+1
@@ -835,25 +836,29 @@ digitMesh.character<-function(sdir, fixed, idxFixed = 1:fixed, GrOpt=setGraphicO
             # use template (template being a filename)
             if (cpt==1){
                 # the first indivual is the template
-                A[,,cpt]<-digitMesh(full, deci, fixed=fixed, idxFixed=idxFixed, GrOpt=GrOpt, verbose=verbose)
+                tmpA<-digitMesh(full, deci, fixed=fixed, idxFixed=idxFixed, GrOpt=GrOpt, verbose=verbose, spec.name=gsub(".stl","",gsub(".ply","",ff)))
                 # we store its corrdinates for use with the next meshes to digitize
-                tpl<-A[,,cpt]
+                tpl<-tmpA
             }else{
                 # the other ones use this template
-                A[,,cpt]<-digitMesh(full, deci, fixed=fixed, idxFixed=idxFixed, templateCoord = tpl,
-                                    idxTemplate = idxTemplate, GrOpt=GrOpt, verbose=verbose)
+                tmpA<-digitMesh(full, deci, fixed=fixed, idxFixed=idxFixed, templateCoord = tpl,
+                                    idxTemplate = idxTemplate, GrOpt=GrOpt, verbose=verbose, spec.name=gsub(".stl","",gsub(".ply","",ff)))
             }
         }else{
 
             if(is.matrix(template)){
                 # use template (template being a matrix)
-                A[,,cpt]<-digitMesh(full, deci, fixed=fixed, idxFixed=idxFixed, templateCoord = template,
-                                    idxTemplate = idxTemplate, GrOpt=GrOpt, verbose=verbose)
+                tmpA<-digitMesh(full, deci, fixed=fixed, idxFixed=idxFixed, templateCoord = template,
+                                    idxTemplate = idxTemplate, GrOpt=GrOpt, verbose=verbose, spec.name=gsub(".stl","",gsub(".ply","",ff)))
             }else{
                 # don't use template
-                A[,,cpt]<-digitMesh(full, deci, fixed=fixed, idxFixed=idxFixed, GrOpt=GrOpt, verbose=verbose)
+                tmpA<-digitMesh(full, deci, fixed=fixed, idxFixed=idxFixed, GrOpt=GrOpt, verbose=verbose, spec.name=gsub(".stl","",gsub(".ply","",ff)))
             }
         }
+
+        # get spec.name
+        A[,,cpt] <- tmpA
+        Vspec.name[cpt] <- attr(tmpA, "spec.name")
 
         # saving coordinates in a TPS file
         if (is.character(saveTPS)){
@@ -867,7 +872,9 @@ digitMesh.character<-function(sdir, fixed, idxFixed = 1:fixed, GrOpt=setGraphicO
             ans <- readline(prompt="Digitize next mesh ? Type y (for yes) or n (for no): ")
             if (ans=="n"){
                 interrupt<-TRUE
-                A<-A[,,1:cpt]
+                A <- A[,,1:cpt, drop=FALSE]
+                Vspec.name <- Vspec.name[1:cpt]
+                dimnames(A) <- list(NULL,NULL,Vspec.name)
                 if (verbose[1]){
                     cat("\n")
                     cat("Loop to digitize all meshes: stops before the end ...")
@@ -882,6 +889,7 @@ digitMesh.character<-function(sdir, fixed, idxFixed = 1:fixed, GrOpt=setGraphicO
                 break
             }
         } else {
+            dimnames(A) <- list(NULL,NULL,Vspec.name)
             if (verbose[1]){
                 cat("Last file reached: digitization loop is ending...")
                 cat("\n")
