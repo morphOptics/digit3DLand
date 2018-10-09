@@ -580,10 +580,12 @@ digitMesh.character<-function(sdir, fixed, idxFixed = 1:fixed, GrOpt=setGraphicO
 
             ongoing<-TRUE
             coord<-read.tps(saveTPS, sdir=FiOpt$full.dir, quiet = !verbose[2])
-            done.files<-paste0(dimnames(coord)[[3]],patt)
+            tmp<-dimnames(coord)[[3]]
+            done.files.full<-paste0(tmp,patt)
+
             if (is.character(TeOpt$template)){
                 # template is a particular mesh already digitized during the previous session
-                TeOpt$template<-coord[,,which(done.files==TeOpt$template)]
+                TeOpt$template<-coord[,,which(done.files.full==TeOpt$template)]
             }
             if (is.logical(TeOpt$template)){
                 if (TeOpt$template){
@@ -592,7 +594,10 @@ digitMesh.character<-function(sdir, fixed, idxFixed = 1:fixed, GrOpt=setGraphicO
                 }
             }
             # full.files: remaining mesh to digitize
-            full.files<-setdiff(full.files,done.files)
+            full.files<-setdiff(full.files,done.files.full)
+            if (!makeDecimation | (makeDecimation & !sequential)){
+                deci.files<-paste0(gsub(patt,"",full.files), deci.suffix, patt)
+            }
 
             if (verbose[1]){
                 if (verbose[2]){
@@ -635,7 +640,12 @@ digitMesh.character<-function(sdir, fixed, idxFixed = 1:fixed, GrOpt=setGraphicO
             }
 
             #... but only if the folder is browsed for the first time
-            Ldeci<-decimMesh(strsplit(full.dir, paste0(sdir, "/"))[[1]][2], tarface = tarface, sdir = sdir,
+            if (identical(full.dir, sdir)){
+                ar1<-full.files
+            }else{
+               ar1<-strsplit(full.dir, paste0(sdir, "/"))[[1]][2]
+            }
+            Ldeci<-decimMesh(ar1, tarface = tarface, sdir = sdir,
                              patt = patt, deci.suffix = deci.suffix,
                              deci.dir = strsplit(deci.dir, paste0(full.dir, "/"))[[1]][2], verbose = verbose, ...)
 
@@ -665,25 +675,11 @@ digitMesh.character<-function(sdir, fixed, idxFixed = 1:fixed, GrOpt=setGraphicO
             if (!ongoing){
                 # folder browsed for the first time
                 full.files<-setdiff(ply.files,deci.files)
-            }else{
-                # folder partly browsed during a previous session: we need to define deci.files and full.files only
-                # with meshes yet to be treated
-                tmp.files<-setdiff(ply.files,deci.files)
-                deci.files<-setdiff(deci.files,full.files)
-                full.files<-setdiff(tmp.files,full.files)
             }
         } else{
             # decimated and full mesh files are in 2 separate subfolders within sdir
             setwd(full.dir)
-            if (!ongoing){
-                # folder browsed for the first time
-                full.files<-list.files(pattern=patt,ignore.case=TRUE)
-            }else{
-                # folder partly browsed during a previous session: we need to define full.files only
-                # with meshes yet to be treated
-                tmp.files<-list.files(pattern=patt,ignore.case=TRUE)
-                full.files<-setdiff(tmp.files,full.files)
-            }
+
             # extract identifiers for full meshes
             ID1<-unlist(strsplit(full.files,patt))
 
@@ -691,11 +687,6 @@ digitMesh.character<-function(sdir, fixed, idxFixed = 1:fixed, GrOpt=setGraphicO
             if (!ongoing){
                 # folder browsed for the first time
                 deci.files<-list.files(pattern=patt,ignore.case=TRUE)
-            }else{
-                # folder partly browsed during a previous session: we need to define deci.files only
-                # with meshes yet to be treated
-                tmp.files<-list.files(pattern=patt,ignore.case=TRUE)
-                deci.files<-setdiff(tmp.files,full.files)
             }
             # extract identifiers for decimated meshes
             ID2<-unlist(strsplit(deci.files,paste0(deci.suffix,patt)))
@@ -719,9 +710,7 @@ digitMesh.character<-function(sdir, fixed, idxFixed = 1:fixed, GrOpt=setGraphicO
             cat("\n")
             cat("Extracting mesh ID: in progress...")
         }
-        if (!ongoing){
-            full.files<-list.files(pattern=patt,ignore.case=TRUE)
-        }
+
         # extract identifiers for meshes
         ID<-unlist(strsplit(full.files,patt))
         if (verbose[1]){
