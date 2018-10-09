@@ -360,10 +360,12 @@ digitMesh.mesh3d <- function (specFull, specDecim, fixed, idxFixed = 1:fixed, te
 
             # plot points/labels of B not placed before
             vv <- idxFixed[Idx]
-            for (ii in 1:length(vv)){
-                grDev <- plot.landmark(t(ptsB$vb[1:3, vv[ii]]), d1, vv[ii], grDev, exist = FALSE)
+            if (length(vv)>0){
+                for (ii in 1:length(vv)){
+                    grDev <- plot.landmark(t(ptsB$vb[1:3, vv[ii]]), d1, vv[ii], grDev, exist = FALSE)
+                }
+                #rgl.viewpoint(userMatrix = R)
             }
-            #rgl.viewpoint(userMatrix = R)
         }
     }
 
