@@ -121,7 +121,7 @@ This function allows to interactively digitize \emph{p}=\code{fixed} landmarks o
          for each landmark, and user needs only to finely position them on during step 1b/.
 
          \strong{Note 1}: It can occur that the assessed zoomed mesh doesn't correspond to the actual zone where the
-                          landmark should be positioned. If so, and because seep 1b/ will process automatically each
+                          landmark should be positioned. If so, and because step 1b/ will process automatically each
                           landmark the ones after the others, you can simply incorrectly positioned this landmark,
                           and modify it later during step 2/.
 
@@ -134,7 +134,7 @@ This function allows to interactively digitize \emph{p}=\code{fixed} landmarks o
                           to fit the tempalte. So, if some of those landmarks are uncorrectly positionned, it can
                           highly impact the projection of the remaining landmarks and then the assessment of the
                           zoomed zones. Thus, we can only encourage user to be carreful on the positioning of those
-                          landmarks to avoid to have to modifiy most of the landmarks durin the step 2/...
+                          landmarks to avoid to have to modifiy most of the landmarks during the step 2/...
 
          \strong{c. Second refinement: using mesh/plane intersection as a guideline to digitize landmark}
 

@@ -22,7 +22,11 @@ Generic function for mesh digitization. It invokes 2 particular methods dependin
 }
 \details{
 For details, user should refer to the 2 methods \code{\link{digitMesh.mesh3d}} (to digitize a single
-         \code{mesh3d} object) and \code{\link{digitMesh.character}} (to digitize a set of mesh files).
+         \code{mesh3d} object) and \code{\link{digitMesh.character}} (to digitize a set of mesh files). \cr
+             \cr
+             \strong{WARNING}: For Mac users, \code{digitMesh} is currently not compatible with the RStudio interface.
+                               Please, use the basic R interface instead. A call from RStudio will cause an error
+                               and an exit from the function... \cr
 }
 \seealso{
 \code{\link{digitMesh.mesh3d}} and \code{\link{digitMesh.character}}.

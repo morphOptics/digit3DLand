@@ -17,7 +17,10 @@ setGraphicOptions(winNb=1, winSize= rbind(c(0,50,830,904), c(840,50,1672,904)), 
 \item{winNb}{A numeric value within \{\code{1},\code{2}\} setting for the number of grahical devices: \cr
 - \code{1} (default) for a single device subdivided into 2 parts (one for the decimated mesh, the
   other for the zoomed mesh); \cr
-- \code{2} for two separate devices.}
+- \code{2} for two separate devices. \cr
+\strong{Warning}: For Mac users, only the setting with 2 separate devices is supported. The OS will be
+                  automatically detected when calling the \code{digitMesh()} function and \code{winNb}
+                  will be force to be 2 in case of a call from a Mac OS. \cr}
 
 \item{winSize}{A vector or matrix indicating the size and positioning of graphical device(s): \cr
 - a vector with 4 positive values indicating the left, top, right and bottom (in pixels, see the

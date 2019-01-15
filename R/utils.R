@@ -419,7 +419,11 @@ decimMesh.character<-function(M, tarface=15000, sdir=getwd(), patt=".ply", deci.
 #' @description Generic function for mesh digitization. It invokes 2 particular methods depending on the class of the
 #'              1st argument \code{M}.
 #' @details For details, user should refer to the 2 methods \code{\link{digitMesh.mesh3d}} (to digitize a single
-#'          \code{mesh3d} object) and \code{\link{digitMesh.character}} (to digitize a set of mesh files).
+#'          \code{mesh3d} object) and \code{\link{digitMesh.character}} (to digitize a set of mesh files). \cr
+#'              \cr
+#'              \strong{WARNING}: For Mac users, \code{digitMesh} is currently not compatible with the RStudio interface.
+#'                                Please, use the basic R interface instead. A call from RStudio will cause an error
+#'                                and an exit from the function... \cr
 #' @param M Either a mesh3d object (in this case user should refer to \code{\link{digitMesh.mesh3d}}) or a character
 #'          value (in this case user should refer to \code{\link{digitMesh.character}}).
 #' @param ... Additional arguments (all are not optional!) needed for mesh digitization.
@@ -1008,7 +1012,10 @@ checkMat<-function(M,message=as.character(deparse(substitute(M)))){
 #' @param winNb A numeric value within \{\code{1},\code{2}\} setting for the number of grahical devices: \cr
 #'              - \code{1} (default) for a single device subdivided into 2 parts (one for the decimated mesh, the
 #'                other for the zoomed mesh); \cr
-#'              - \code{2} for two separate devices.
+#'              - \code{2} for two separate devices. \cr
+#'              \strong{Warning}: For Mac users, only the setting with 2 separate devices is supported. The OS will be
+#'                                automatically detected when calling the \code{digitMesh()} function and \code{winNb}
+#'                                will be force to be 2 in case of a call from a Mac OS. \cr
 #' @param winSize A vector or matrix indicating the size and positioning of graphical device(s): \cr
 #'                - a vector with 4 positive values indicating the left, top, right and bottom (in pixels, see the
 #'                  help for the \code{windowRect} parameter in \code{\link[rgl]{par3d}} for the device (when
