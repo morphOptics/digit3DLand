@@ -188,9 +188,19 @@ digitMesh.mesh3d <- function (specFull, specDecim, fixed, idxFixed = 1:fixed, te
         }
     }
     specFull <- vcgUpdateNormals(specFull, silent = !verbose[2])
-    specFull<-vcgClean(specFull, sel=2, silent=!verbose[2])
+    specFull <- vcgClean(specFull, sel=2, silent=!verbose[2])
+
+    if (missing(specDecim)) {
+        warning('specDecim was missing with no default. Run decimMesh')
+        specDecim <- decimMesh(M, tarface = 15000, silent = FALSE)
+
+    } else if (length(specDecim) == 1) {
+        specDecim <- decimMesh(M, tarface = specDecim, silent = FALSE)
+    }
+
     specDecim <- vcgUpdateNormals(specDecim, silent = !verbose[2])
-    specDecim<-vcgClean(specDecim, sel=2, silent=!verbose[2])
+    specDecim <- vcgClean(specDecim, sel=2, silent=!verbose[2])
+
     if (verbose[1]){
         if (!verbose[2]){
             cat("\r")
