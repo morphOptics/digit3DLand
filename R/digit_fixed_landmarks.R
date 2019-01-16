@@ -150,15 +150,22 @@ digitMesh.mesh3d <- function (specFull, specDecim, fixed, idxFixed = 1:fixed, te
 
 
     # check OS and R GUI
-    os<-Sys.info()[1]
-    gui<-.Platform$GUI
-    if (os=="Darwin"){
-        if (gui=="RStudio"){
+    os <- Sys.info()[1]
+    gui <- .Platform$GUI
+    if (os == "Darwin"){
+        if (gui == "RStudio"){
             # not supported
-            error("The function is not supported with the RStudio interface in Mac... Please, use the basic R interface instead.")
-        }else{
-            # only 2 separate windows are supported => forcing graphic options...
-            GrOpt$winNb<-2
+            stop("The function is not supported with the RStudio interface in Mac OS
+                 Please, use the R gui instead.")
+        } else{
+            # in Mac OS only 2 separate windows are supported
+            # => forcing graphic options...
+            print(GrOpt)
+            if (GrOpt$winOptions$winNb == 1){
+                warning('with mac OS, multiple interactive subscenes are not supported.
+                        winWb option was set to 2')
+                GrOpt <- setGraphicOptions(winNb = 2)
+            }
         }
     }
 
