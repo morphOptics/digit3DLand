@@ -110,6 +110,8 @@
 #'           idxTemplate = NULL, GrOpt = setGraphicOptions(), verbose = TRUE)
 #' @param specFull Full resolution mesh3d object.
 #' @param specDecim Decimated resolution mesh3d object, as obtained through \code{\link{decimMesh.mesh3d}} for example.
+#' If missing, the mesh will be decimated to an arbitrary value; If equal to a numeric value then
+#' the mesh will be decimated to this target number of faces.
 #' @param fixed Number of landmarks to digitize.
 #' @param idxFixed Numeric vector with \code{fixed} positive integers specifing the landmark ordering in which the
 #'                 landmarks will be digitized. \cr
