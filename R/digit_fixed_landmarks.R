@@ -192,9 +192,18 @@ digitMesh.mesh3d <- function (specFull, specDecim, fixed, idxFixed = 1:fixed, te
     specFull <- vcgUpdateNormals(specFull, silent = !verbose[2])
     specFull <- vcgClean(specFull, sel=2, silent=!verbose[2])
 
-    if (missing(specDecim)) {
-        warning('specDecim was missing with no default. Run decimMesh')
-        specDecim <- decimMesh(M, tarface = tarface, silent = FALSE)
+    test1<-test2<-FALSE
+    if (missing(specDecim)){
+      test1<-TRUE
+    }else if(!(any(class(specDecim) == "mesh3d"))){
+      test2<-TRUE
+    }
+    if ( test1 | test2 ) {
+        if (test2){
+            fixed<-specDecim
+        }
+        warning('specDecim was missing with no default. Run decimMesh', immediate.=TRUE)
+        specDecim <- decimMesh(specFull, tarface = tarface, silent = FALSE)
     }
 
     specDecim <- vcgUpdateNormals(specDecim, silent = !verbose[2])
