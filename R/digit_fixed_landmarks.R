@@ -110,8 +110,7 @@
 #'           idxTemplate = NULL, GrOpt = setGraphicOptions(), verbose = TRUE)
 #' @param specFull Full resolution mesh3d object.
 #' @param specDecim Decimated resolution mesh3d object, as obtained through \code{\link{decimMesh.mesh3d}} for example.
-#' If missing, the mesh will be decimated to an arbitrary value; If equal to a numeric value then
-#' the mesh will be decimated to this target number of faces.
+#'           If missing, the mesh will be decimated to the \code{tarface} target value.
 #' @param fixed Number of landmarks to digitize.
 #' @param idxFixed Numeric vector with \code{fixed} positive integers specifing the landmark ordering in which the
 #'                 landmarks will be digitized. \cr
@@ -139,6 +138,7 @@
 #'                  \code{digit3DLand} library, and the second one to comments specific to the functions from the
 #'                  \code{Rvcg} library. \cr
 #'                - a 2-length logical vector standing for the 2 possible levels of verbose.
+#' @param tarface Number of target faces to decimated the mesh, used if specDecim is missing.
 #' @param spec.name Attribute for the returned A array indicating the specimen name. Possible settings are: \cr
 #'                  - NULL (default): array name is set as the mesh3d object name \cr
 #'                  - a character value given the array name.
@@ -148,7 +148,7 @@
 #' @export
 #'
 digitMesh.mesh3d <- function (specFull, specDecim, fixed, idxFixed = 1:fixed, templateCoord = NULL, idxTemplate = NULL,
-                              GrOpt=setGraphicOptions(), verbose=c(TRUE,TRUE), spec.name=NULL) {
+                              GrOpt=setGraphicOptions(), verbose=c(TRUE,TRUE), tarface = 15000, spec.name=NULL) {
 
 
     # check OS and R GUI
@@ -194,10 +194,7 @@ digitMesh.mesh3d <- function (specFull, specDecim, fixed, idxFixed = 1:fixed, te
 
     if (missing(specDecim)) {
         warning('specDecim was missing with no default. Run decimMesh')
-        specDecim <- decimMesh(M, tarface = 15000, silent = FALSE)
-
-    } else if (length(specDecim) == 1) {
-        specDecim <- decimMesh(M, tarface = specDecim, silent = FALSE)
+        specDecim <- decimMesh(M, tarface = tarface, silent = FALSE)
     }
 
     specDecim <- vcgUpdateNormals(specDecim, silent = !verbose[2])
