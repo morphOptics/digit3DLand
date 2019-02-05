@@ -3,11 +3,11 @@ Type: Package
 Title: Digitalization of 3D landmarks on mesh
 Version: 0.1.1
 Date: 2017-03-06
-Authors@R: c(person("Remi", "Laffont", email = "remi.laffont@u-bourgogne.fr", role = c("aut")),
-    person("Nicolas", "Navarro", email = "nicolas.navarro@ephe.sorbonne.fr",
+Authors@R: c(person("Remi", "Laffont", email = "remi.laffont@u-bourgogne.fr", role = c("aut", "cre")),
+    person("Nicolas", "Navarro", email = "nicolas.navarro@ephe.psl.eu",
     role = c("aut", "cre")))
 Author: Nicolas Navarro [aut, cre],
-  Remi Laffont [aut],
+  Remi Laffont [aut, cre],
 Description:
 License: GPL (>=2.0)
 Depends:
