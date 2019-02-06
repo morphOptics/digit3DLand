@@ -23,11 +23,15 @@ A decimated \code{mesh3d} object.
 }
 \description{
 Wrapper for the \code{\link[Rvcg]{vcgQEdecim}} function making additionnal mesh cleaning needed for
-             \code{\link{digitMesh}}.
+             \code{\link{digitMesh}}. Additionally to the \code{\link[Rvcg]{vcgQEdecim}} function, this function
+             transfers vertex colors (if any) from the original mesh to the decimated one.
 }
 \details{
 This function decimates a given mesh \code{M} with \code{\link[Rvcg]{vcgQEdecim}}, then updates mesh
-         normals, and removes non manifold faces in the decimated mesh.
+         normals, removes non manifold faces in the decimated mesh and transfers vertex colors (if any) from the
+         original mesh to the decimated one (done firstly by converting vertex colors from the original mesh to
+         face colors, and then by computing the correspondence among vertices from the decimated mesh to the given
+         one by means of the \code{\link[Rvcg]{vcgClostKD}} function).
 }
 \examples{
 

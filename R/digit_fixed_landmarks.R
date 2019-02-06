@@ -165,7 +165,8 @@ digitMesh.mesh3d <- function (specFull, specDecim, fixed, idxFixed = 1:fixed, te
             if (GrOpt$winOptions$winNb == 1){
                 warning('with mac OS, multiple interactive subscenes are not supported.
                         winWb option was set to 2')
-                GrOpt <- setGraphicOptions(winNb = 2, winSynchro = FALSE)
+                GrOpt$winOptions$winNb <- 2
+                GrOpt$winOptions$winSynchro <- FALSE
             }
         }
     }
@@ -175,6 +176,10 @@ digitMesh.mesh3d <- function (specFull, specDecim, fixed, idxFixed = 1:fixed, te
         stop("specFull must have class \"mesh3d\".")
     if (is.null(spec.name)){
         spec.name <- deparse(substitute(specFull))
+    }
+    if (!GrOpt$meshOptions$meshVertCol){
+        specFull$material$color <- NULL
+        specDecim$material$color <- NULL
     }
 
     # check verbose

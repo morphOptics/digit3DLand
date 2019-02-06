@@ -5,7 +5,7 @@
 \title{Sets Graphic Options}
 \usage{
 setGraphicOptions(winNb=1, winSize= rbind(c(0,50,830,904), c(840,50,1672,904)), winSynchro=TRUE,
-                  meshColor=rep("gray",2), meshAlpha=rep(1,2), meshShade=rep(TRUE,2),
+                  meshVertCol=TRUE, meshColor=rep("gray",2), meshAlpha=rep(1,2), meshShade=rep(TRUE,2),
                   meshPoints=c(FALSE,TRUE), meshWire=rep(FALSE,2),
                   PCplanesDraw=FALSE, PCplanesColor= "cyan", PCplanesAlpha=0.7,
                   intersectLines=TRUE, intersectPoints=FALSE, intersectColor="red",
@@ -33,6 +33,10 @@ setGraphicOptions(winNb=1, winSize= rbind(c(0,50,830,904), c(840,50,1672,904)), 
 synchronously applied on the second one (decimated or full mesh). Only Works for \code{winNb=1}.
 \cr
 Default: \code{TRUE} for synchronization.}
+
+\item{meshVertCol}{A logical value indicating if the original vertex colors should be kept (\code{TRUE}) or not
+(\code{FALSE}). In the last case, a uniform color specified by the \code{meshColor} will be
+used.}
 
 \item{meshColor}{A character vector of length 1 or 2 indicating the color(s) for mesh plotting. Values for
 \code{meshColor} should be taken from \code{\link[grDevices]{colors}}(). A 1-length vector will

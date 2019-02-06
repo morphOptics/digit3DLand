@@ -281,6 +281,9 @@ SetPtZoom <- function(specFull, Pt, IdxPts=NULL, orthoplanes, idxPlanes,
     vd <- matrix(unlist(vd), length(tmp), 2, byrow=TRUE)
     specFull2 <- tmp[[which.min(vd[, 1])]]
 
+    # transfers vertex colors (if any)
+    specFull2 <- colTransf(specFull, specFull2)
+
     # center the vertices of the submesh
     Trans2 <- apply(specFull2$vb[1:3, ], 1, mean)
     specFull2$vb[1:3,] <- specFull2$vb[1:3, ] - Trans2
@@ -300,14 +303,20 @@ SetPtZoom <- function(specFull, Pt, IdxPts=NULL, orthoplanes, idxPlanes,
     }
 
     # plot zoomed mesh
+    if (grDev$meshOptions$meshVertCol){
+        Col <- NULL
+        ColPts <- specFull2$material$color[match(1:ncol(specFull2$vb),specFull2$it)]
+    }else{
+        Col <- ColPts <- grDev$meshOptions$meshColor[2]
+    }
     if (grDev$meshOptions$meshShade[2]){
-        shade3d(specFull2, col=grDev$meshOptions$meshColor[2], alpha=grDev$meshOptions$meshAlpha[2])
+        shade3d(specFull2, col=Col, alpha=grDev$meshOptions$meshAlpha[2])
     }
     if (grDev$meshOptions$meshWire[2]){
-        wire3d(specFull2, col=grDev$meshOptions$meshColor[2], alpha=grDev$meshOptions$meshAlpha[2])
+        wire3d(specFull2, col=Col, alpha=grDev$meshOptions$meshAlpha[2])
     }
     if (grDev$meshOptions$meshPoints[2]){
-        points3d(t(specFull2$vb[1:3,]), col=grDev$meshOptions$meshColor[2], alpha=grDev$meshOptions$meshAlpha[2])
+        points3d(t(specFull2$vb[1:3,]), col=ColPts, alpha=grDev$meshOptions$meshAlpha[2])
     }
 
     # draws eventually the intersections visibles on the submesh

@@ -206,6 +206,61 @@ test.ID<-function(ID1,ID2){
 }
 
 ##########################
+#' @title Transfers Colors between Meshes
+#' @description This function transfers vertex colors (if any) from one mesh to a one.
+#' @details This function transfers vertex colors (if any) from the original mesh to the decimated one following
+#'          2 steps: \cr
+#'          - converts of vertex colors from the first mesh \code{M1} to face colors by averaging the colors from
+#'          the 3 vertices of each face, \cr
+#'          - estimates the correspondence among vertices from the second mesh \code{M2} to the first mesh \code{M1}
+#'          by means of the \code{\link[Rvcg]{vcgClostKD}} function).
+#' @param M1 A \code{mesh3d} object to transfer vertex colors from.
+#' @param M2 A \code{mesh3d} object to transfer vertex colors to.
+#'
+#' @return A decimated \code{mesh3d} object.
+#' @export
+#'
+#' @examples
+#'
+colTransf <- function(M1, M2){
+
+    if (class(M1)!="mesh3d" | class(M2)!="mesh3d"){
+        stop("This function only accepts mesh3d objects...")
+    }
+
+    Col <- M1$material$color
+
+    if (!is.null(Col)){
+        # material$color should be present...
+        if (is.matrix(Col)){
+            #... be stored as a matrix...
+            nCol <- ncol(Col)
+            if (length(unique(Col[, sample(1:nCol, min(nCol, 500))])) > 1){
+                # ...and contain different color values (test through a random sample of 500 faces)
+
+                # converting vertex colors for M1 in face colors (=> Mcol)
+                Acol <- array(col2rgb(Col), c(3, 3, nCol)) # converts hewadecimal colors to rgb values
+                mcol <- (Acol[,1,] + Acol[,2,] + Acol[,3,]) / 3 # averaging vertex colors for each face to get a single value per face
+                mcol <- round(mcol)
+                mcol <- rgb(mcol[1,], mcol[2,], mcol[3,], maxColorValue = 255) # converts back to hexadecimal values
+                Mcol <- matrix(mcol, 3, nCol, byrow=TRUE)
+
+                # computing correspondence among vertices of M2 and faces of M1
+                kd <- vcgClostKD(M2, M1)
+
+                # transferring face colors from M (Mcol) to decMesh
+                nc <- ncol(M2$it)
+                idxFaces <- matrix(kd$faceptr[M2$it], 3, nc) # indexes of faces from M1 matching with the vertices of M2
+                M2$material$color <- matrix(Mcol[1, idxFaces], 3, nc)
+
+            }
+        }
+    }
+
+    return(M2)
+}
+
+##########################
 #' Mesh Decimation
 #' @description Generic function for mesh decimation. It invokes 2 particular methods depending on the class of the
 #'              1st argument \code{M}.
@@ -228,9 +283,13 @@ decimMesh<-function(M, ...){
 ##########################
 #' @title Decimates a Mesh
 #' @description Wrapper for the \code{\link[Rvcg]{vcgQEdecim}} function making additionnal mesh cleaning needed for
-#'              \code{\link{digitMesh}}.
+#'              \code{\link{digitMesh}}. Additionally to the \code{\link[Rvcg]{vcgQEdecim}} function, this function
+#'              transfers vertex colors (if any) from the original mesh to the decimated one.
 #' @details This function decimates a given mesh \code{M} with \code{\link[Rvcg]{vcgQEdecim}}, then updates mesh
-#'          normals, and removes non manifold faces in the decimated mesh.
+#'          normals, removes non manifold faces in the decimated mesh and transfers vertex colors (if any) from the
+#'          original mesh to the decimated one (done firstly by converting vertex colors from the original mesh to
+#'          face colors, and then by computing the correspondence among vertices from the decimated mesh to the given
+#'          one by means of the \code{\link[Rvcg]{vcgClostKD}} function).
 #' @param M A \code{mesh3d} object.
 #' @param tarface An integer numerical value for the targetted number of faces for decimation (if superior or equal
 #'                to the number of faces in \code{M}, then no decimation is performed).
@@ -253,6 +312,9 @@ decimMesh.mesh3d<-function(M, tarface=15000, silent = FALSE, ...){
     decMesh <- vcgUpdateNormals(decMesh, silent = silent)
     # Correction if mesh has non-manifold faces
     decMesh<-vcgClean(decMesh, sel = 2, silent = silent)
+
+    # color transfer (in case of non uniform color for M)
+    decMesh <- colTransf(M, decMesh)
 
     return(decMesh)
 
@@ -1001,7 +1063,7 @@ checkMat<-function(M,message=as.character(deparse(substitute(M)))){
 #'            (\code{zoomSeeLm}).
 #' @usage
 #' setGraphicOptions(winNb=1, winSize= rbind(c(0,50,830,904), c(840,50,1672,904)), winSynchro=TRUE,
-#'                   meshColor=rep("gray",2), meshAlpha=rep(1,2), meshShade=rep(TRUE,2),
+#'                   meshVertCol=TRUE, meshColor=rep("gray",2), meshAlpha=rep(1,2), meshShade=rep(TRUE,2),
 #'                   meshPoints=c(FALSE,TRUE), meshWire=rep(FALSE,2),
 #'                   PCplanesDraw=FALSE, PCplanesColor= "cyan", PCplanesAlpha=0.7,
 #'                   intersectLines=TRUE, intersectPoints=FALSE, intersectColor="red",
@@ -1026,6 +1088,9 @@ checkMat<-function(M,message=as.character(deparse(substitute(M)))){
 #'                   synchronously applied on the second one (decimated or full mesh). Only Works for \code{winNb=1}.
 #'                   \cr
 #'                   Default: \code{TRUE} for synchronization.
+#' @param meshVertCol A logical value indicating if the original vertex colors should be kept (\code{TRUE}) or not
+#'                    (\code{FALSE}). In the last case, a uniform color specified by the \code{meshColor} will be
+#'                    used.
 #' @param meshColor A character vector of length 1 or 2 indicating the color(s) for mesh plotting. Values for
 #'                  \code{meshColor} should be taken from \code{\link[grDevices]{colors}}(). A 1-length vector will
 #'                  apply the same color for full and decimated mesh, and a 2-length will apply the first color for
@@ -1161,7 +1226,7 @@ checkMat<-function(M,message=as.character(deparse(substitute(M)))){
 #' #...
 #'
 setGraphicOptions<-function(winNb=1, winSize= rbind(c(0,50,830,904), c(840,50,1672,904)), winSynchro=TRUE,
-                            meshColor=rep("gray",2), meshAlpha=rep(1,2), meshShade=rep(TRUE,2),
+                            meshVertCol=TRUE, meshColor=rep("gray",2), meshAlpha=rep(1,2), meshShade=rep(TRUE,2),
                             meshPoints=c(FALSE,TRUE), meshWire=rep(FALSE,2),
                             PCplanesDraw=FALSE, PCplanesColor= "cyan", PCplanesAlpha=0.7,
                             intersectLines=TRUE, intersectPoints=FALSE, intersectColor="red",
@@ -1210,8 +1275,12 @@ setGraphicOptions<-function(winNb=1, winSize= rbind(c(0,50,830,904), c(840,50,16
     winOptions<-list(winNb=winNb, winSize=winSize, winSynchro=winSynchro)
 
     # mesh options
-    checkColor(meshColor)
-    meshColor<-checkLength(meshColor,c(1,2))
+    if (!meshVertCol){
+        checkColor(meshColor)
+        meshColor<-checkLength(meshColor,c(1,2))
+    }else{
+        meshColor<-NULL
+    }
 
     checkAlpha(meshAlpha)
     meshAlpha<-checkLength(meshAlpha,c(1,2))
@@ -1224,7 +1293,7 @@ setGraphicOptions<-function(winNb=1, winSize= rbind(c(0,50,830,904), c(840,50,16
         meshShade<-rep(TRUE,2)
         warning("Some mesh plot modes are missing! meshShade will be set to TRUE for both windows...")
     }
-    meshOptions<-list(meshColor=meshColor,meshAlpha=meshAlpha,meshShade=meshShade,meshPoints=meshPoints,meshWire=meshWire)
+    meshOptions<-list(meshVertCol=meshVertCol, meshColor=meshColor,meshAlpha=meshAlpha,meshShade=meshShade,meshPoints=meshPoints,meshWire=meshWire)
 
     # PC planes options
     stopMessage<-"PCplanesDraw should be a logical value, or a character vector taking value within {\"pc1-pc2\",\"pc1-pc3\",\"pc2-pc3\"}..."
