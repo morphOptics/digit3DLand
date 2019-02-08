@@ -1256,14 +1256,24 @@ setGraphicOptions<-function(winNb=1, winSize= rbind(c(0,50,830,904), c(840,50,16
     if (!all(floor(winSize) == winSize, na.rm = TRUE)){
         stop("winSize should contain positive integer values...")
     }
-    if (winNb==2 & length(winSize)==4){
-        tmp<-winSize
-        winSize<-rbind(tmp,tmp+c(tmp[3],0,tmp[3],0))
-        warning(paste0("The size and position for the second window wasn't specified... Set to: c(",toString(winSize[2,]),")"))
-    }
-    winSize<-matrix(c(t(winSize))[1:(4*winNb)],winNb,4,byrow=TRUE)
-    if (min(winSize[,3]-winSize[,1])<=0 | min(winSize[,4]-winSize[,2])<=0){
-        stop("Wrong specification for winSize: see the help for windowRect parameter in rgl:::par3d for details")
+    # checking for osx
+    os <- Sys.info()[1]
+    gui <- .Platform$GUI
+    if (os == "Darwin"){
+        if (gui == "RStudio"){
+            # not supported
+            stop("The function is not supported with the RStudio interface in Mac OS
+                 Please, use the R gui instead.")
+        } else{
+            # in Mac OS only 2 separate windows are supported
+            # => forcing graphic options...
+            if (winNb == 1){
+                warning('with mac OS, multiple interactive subscenes are not supported.
+                        winWb option was set to 2')
+                winNb <- 2
+                winSynchro <- FALSE
+            }
+        }
     }
     if (!is.logical(winSynchro) | is.na(winSynchro)){
         stop("winSynchro should be a logical value...")
@@ -1271,6 +1281,15 @@ setGraphicOptions<-function(winNb=1, winSize= rbind(c(0,50,830,904), c(840,50,16
     if (winNb==2 & winSynchro){
         winSynchro<-FALSE
         warning("With 2 separate windows, winSynchro=TRUE is not supported... Set to FALSE")
+    }
+    if (winNb==2 & length(winSize)==4){
+        tmp<-winSize
+        winSize<-rbind(tmp,tmp+c(tmp[3],0,tmp[3],0))
+        warning(paste0("The size and position for the second window wasn't specified... Set to: c(",toString(winSize[2,]),")"))
+    }
+    winSize <- matrix(c(t(winSize))[1:(4*winNb)],winNb,4,byrow=TRUE)
+    if (min(winSize[,3]-winSize[,1]) <= 0 | min(winSize[,4]-winSize[,2]) <= 0){
+        stop("Wrong specification for winSize: see the help for windowRect parameter in rgl:::par3d for details")
     }
     winOptions<-list(winNb=winNb, winSize=winSize, winSynchro=winSynchro)
 

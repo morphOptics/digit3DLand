@@ -177,10 +177,6 @@ digitMesh.mesh3d <- function (specFull, specDecim, fixed, idxFixed = 1:fixed, te
     if (is.null(spec.name)){
         spec.name <- deparse(substitute(specFull))
     }
-    if (!GrOpt$meshOptions$meshVertCol){
-        specFull$material$color <- NULL
-        specDecim$material$color <- NULL
-    }
 
     # check verbose
     verbose<-checkLogical(verbose,c(1,2))
@@ -210,7 +206,10 @@ digitMesh.mesh3d <- function (specFull, specDecim, fixed, idxFixed = 1:fixed, te
         warning('specDecim was missing with no default. Run decimMesh', immediate.=TRUE)
         specDecim <- decimMesh(specFull, tarface = tarface, silent = FALSE)
     }
-
+    if (!GrOpt$meshOptions$meshVertCol){
+        specFull$material$color <- NULL
+        specDecim$material$color <- NULL
+    }
     specDecim <- vcgUpdateNormals(specDecim, silent = !verbose[2])
     specDecim <- vcgClean(specDecim, sel=2, silent=!verbose[2])
 
@@ -263,6 +262,10 @@ digitMesh.mesh3d <- function (specFull, specDecim, fixed, idxFixed = 1:fixed, te
 
     # Define default values for graphics interactivity
     grDev<-GrOpt
+    # check if the mesh is actually colored
+    if (grDev$meshOptions$meshVertCol & is.null(specFull$material$color)){
+            grDev$meshOptions$meshColor <- rep('gray', 2)
+    }
     grDev$vSp <- grDev$vTx <- Sp <- Tx <- rep(NA, fixed)
     grDev$spradius <- GrOpt$spheresOptions$spheresRad
     tmp <- diff(apply(specDecim$vb[1:3,], 1, range))

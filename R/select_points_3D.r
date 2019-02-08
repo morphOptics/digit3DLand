@@ -304,9 +304,14 @@ SetPtZoom <- function(specFull, Pt, IdxPts=NULL, orthoplanes, idxPlanes,
 
     # plot zoomed mesh
     if (grDev$meshOptions$meshVertCol){
-        Col <- NULL
-        ColPts <- specFull2$material$color[match(1:ncol(specFull2$vb),specFull2$it)]
-    }else{
+        if (is.null(specFull2$material$color)) {
+            grDev$meshOptions$meshColor <- rep('gray', 2)
+            Col <- ColPts <- grDev$meshOptions$meshColor[2]
+        } else {
+            Col <- NULL
+            ColPts <- specFull2$material$color[match(1:ncol(specFull2$vb), specFull2$it)]
+        }
+    } else{
         Col <- ColPts <- grDev$meshOptions$meshColor[2]
     }
     if (grDev$meshOptions$meshShade[2]){

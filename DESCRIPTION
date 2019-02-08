@@ -1,7 +1,7 @@
 Package: digit3DLand
 Type: Package
 Title: Digitalization of 3D landmarks on mesh
-Version: 0.1.1
+Version: 0.1.2
 Date: 2017-03-06
 Authors@R: c(person("Remi", "Laffont", email = "remi.laffont@u-bourgogne.fr", role = c("aut", "cre")),
     person("Nicolas", "Navarro", email = "nicolas.navarro@ephe.psl.eu",
