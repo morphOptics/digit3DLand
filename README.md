@@ -3,9 +3,9 @@
 
 [Nicolas Navarro](http://nnavarro.free.fr) and [Rémi Laffont](http://biogeosciences.u-bourgogne.fr)
 
-[MorphOptics platform](http://biogeosciences.u-bourgogne.fr)
+[MorphOptics platform](http://biogeosciences.u-bourgogne.fr/fr/services-analytiques/160-imagerie-et-morphometrie-morphoptics.html)
 
-[R/digit3DLand](http://nnavarro.free.fr/programs.html) is an [R](http://www.r-project.org) package to digitize 3D landmarks 
+R/digit3DLand is an [R](http://www.r-project.org) package to digitize 3D landmarks 
 on triangular meshes. 
 
 This tool digitizes 3D landmarks using a multiresolution approach. First, the landmark is selected roughly on a low resolution mesh 
@@ -27,5 +27,5 @@ Then install R/digit3DLand
 
 ```r
 	require(devtools)
-	install_github("nnavarro/digit3DLand", local=FALSE)
+	install_github("morphOptics/digit3DLand", local=FALSE)
 ```
