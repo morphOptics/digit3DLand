@@ -13,7 +13,7 @@ License: GPL (>=2.0)
 Depends:
     R (>= 3.1.0), rgl, Rvcg, sp, Rcpp, Morpho
 LazyData: TRUE
-RoxygenNote: 6.0.1
+RoxygenNote: 6.1.1
 URL: https://github.com/nnavarro/digit3DLand
 LinkingTo: Rcpp, RcppArmadillo (>= 0.4)
 NeedsCompilation: yes
