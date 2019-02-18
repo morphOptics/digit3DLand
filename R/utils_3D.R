@@ -1,36 +1,28 @@
-# utils_3D.R
+# utils_3D ----
 # copy from rgl mouseTrackball() - see rgl mouseCallbacks.R
 # utilities used by selectPlanes()
-
-###########################
-
 xprod <- function(a, b){
     c(a[2]*b[3] - a[3]*b[2],
       a[3]*b[1] - a[1]*b[3],
       a[1]*b[2] - a[2]*b[1])
 }
 
-###########################
-
 vlen <- function(a) sqrt(sum(a^2))
 
-###########################
-
-angle <- function(a,b) {
+angle <- function(a, b) {
     dot <- sum(a*b)
     acos(dot/vlen(a)/vlen(b))
 }
 
-###########################
-
-Clear3d <- function(type = c("shapes", "bboxdeco", "material"), defaults = getr3dDefaults(), subscene = 0) {
+# Cleaning 3D scene ----
+Clear3d <- function(type = c("shapes", "bboxdeco", "material"),
+                    defaults = getr3dDefaults(), subscene = 0) {
     d <- .check3d()
     rgl.clear(type, subscene = subscene)
     return(d)
 }
 
-###########################
-
+# Utilities for rotating, projecting, imputing and plotting 3D coordinates ----
 # copied and simplified from Morpho::projRead() for convenience
 # project points onto the closest point on a mesh
 project <- function (lm, mesh, sign = TRUE, trans = FALSE) {
@@ -38,8 +30,6 @@ project <- function (lm, mesh, sign = TRUE, trans = FALSE) {
     if (trans) data <- t(data$vb[1:3, ])
     return(data)
 }
-
-###########################
 
 rotMajorAxes <- function(mat) {
     if (dim(mat)[1] == 3) {
@@ -95,7 +85,7 @@ imputeCoords <- function(A, template) {
     B <- sweep(BB, 2, transA, FUN = "+")
 
     # Copy of already placed landmarks in A into B
-    B[!is.na(A[,1]), ] <- A[!is.na(A[,1]), ]
+    B[!is.na(A[, 1]), ] <- A[!is.na(A[, 1]), ]
     return(B)
 }
 
@@ -105,19 +95,19 @@ plot.landmark <- function(landmark, d1, idx_pts, grDev, exist = FALSE,...){
         stop("landmark should be a xyz point")
 
     # Graphical parameters
-    alpha <- grDev$spheresOptions$spheresAlpha[2,1]
-    color <- grDev$spheresOptions$spheresColor[2,1]
-    rad <- grDev$spradius[2,1]
-    col <- grDev$labelOptions$labelColor[2,1]
-    cex <- grDev$labelOptions$labelCex[2,1]
-    adj <- grDev$labelOptions$labelAdj[2,1,]
+    alpha <- grDev$spheresOptions$spheresAlpha[2, 1]
+    color <- grDev$spheresOptions$spheresColor[2, 1]
+    rad <- grDev$spradius[2, 1]
+    col <- grDev$labelOptions$labelColor[2, 1]
+    cex <- grDev$labelOptions$labelCex[2, 1]
+    adj <- grDev$labelOptions$labelAdj[2, 1,]
 
     # plot
-    if (grDev$winOptions$winNb==2){
+    if (grDev$winOptions$winNb == 2){
         rgl.set(d1)
     }else{
-        subS<-rgl.ids(type="subscene",subscene=0)
-        useSubscene3d(subS[2,1])
+        subS<-rgl.ids(type = "subscene", subscene = 0)
+        useSubscene3d(subS[2, 1])
     }
 
     if (exist) {
@@ -131,47 +121,8 @@ plot.landmark <- function(landmark, d1, idx_pts, grDev, exist = FALSE,...){
     return(grDev)
 }
 
-###########################
-subset.mesh3d <- function(mesh, subset, select=c("vb", "normals", "it", "material")) {
-
-    if (missing(subset)) {
-        stop("'subset' not defined and without default value")
-    } else {
-        if (!is.logical(subset))
-            stop("'subset' must be logical")
-    }
-
-    subMesh <- list()
-    if ("vb" %in% select)
-        subMesh$vb <- mesh$vb[, subset]
-
-    if (any(c("norm", "normals") %in% select))
-        subMesh$normals <- mesh$normals[, subset]
-
-    if (any(c("face", "faces", "it") %in% select)) {
-        idx_subset <- which(subset)
-        idxV <- is.element(mesh$it, idx_subset)
-        idxV <- matrix(idxV, nrow=3, ncol=dim(mesh$it)[2])
-        idx <- (colSums(idxV) == 3)
-        subMesh$it <- matrix(match(mesh$it[, idx], idx_subset), nrow=3, ncol=sum(idx))
-    }
-
-    if (any(c("mat", "material") %in% select)) {
-        if (!is.null(mesh$material)) {
-            subMesh$material <- mesh$material
-            if (is.list(mesh$material) && any(c("face", "faces", "it") %in% select)) {
-                subMesh$material$color <- mesh$material$color[, idx] #per vertex color attribute
-            }
-        } else subMesh$material <- "gray"
-    }
-    class(subMesh) <- "mesh3d"
-    return(subMesh)
-}
-
-
-###########################
-meshPlaneIntersect2<-function (mesh, v1, v2 = NULL, v3 = NULL, normal = NULL)
-{
+# Intersection between mesh and planes ----
+meshPlaneIntersect2 <- function (mesh, v1, v2 = NULL, v3 = NULL, normal = NULL) {
 
     # modified function from Morpho:::meshPlaneIntersect
     # As for Morpho:::meshPlaneIntersect, this function computes the intersection points between
@@ -202,11 +153,11 @@ meshPlaneIntersect2<-function (mesh, v1, v2 = NULL, v3 = NULL, normal = NULL)
     # At this step, the edges at the intersection mesh borders correspond to the edges at the
     # borders in the whole mesh, but also to all edges delimiting that submesh. But by definition,
     # this second class of edges won't bear any intersection points (contrary to the first one which could).
-    edgesTot <- as.matrix(vcgGetEdge(mesh,FALSE))
+    edgesTot <- as.matrix(vcgGetEdge(mesh, FALSE))
 
     # contrary to the "edges" in meshPlaneIntersect, the following "edges" is bigger (each non-border
     # edge being duplicated)
-    edges<-edgesTot[, 1:2]
+    edges <- edgesTot[, 1:2]
 
     # unchanged lines from meshPlaneIntersect: extract (duplicated) vertex coordinates from the mesh of intersection
     pointcloud <- vert2points(mesh)
@@ -215,18 +166,17 @@ meshPlaneIntersect2<-function (mesh, v1, v2 = NULL, v3 = NULL, normal = NULL)
     # and extracting the edge indexes being intersected (idx_edges), in addition to the intersection coordinates (out),
     # both being duplicated
     tmp <- edgePlaneIntersect2(pointcloud, edges, v1 = v1, v2 = v2, v3 = v3, normal = normal)
-    out<-tmp[,1:3]
-    idx_edges<-tmp[,4]
+    out <- tmp[, 1:3]
+    idx_edges <- tmp[, 4]
 
     # additional line from MeshPlaneIntersect. Extracts the intersected edges from edgesTot.
-    edgesTot<-edgesTot[idx_edges,]
+    edgesTot <- edgesTot[idx_edges, ]
 
 
-    return(list(out=out, edgesTot=edgesTot))
+    return(list(out = out, edgesTot = edgesTot))
 }
 
-###########################
-edgePlaneIntersect2<-function (pointcloud, edges, v1, v2 = NULL, v3 = NULL, normal = NULL) {
+edgePlaneIntersect2 <- function (pointcloud, edges, v1, v2 = NULL, v3 = NULL, normal = NULL) {
 
     # modified function from Morpho:::edgePlaneIntersect
     # The only change corresonds to the call of the Rccp function"edgePlane2" rather than "edgePlane"
