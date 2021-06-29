@@ -1,3 +1,22 @@
+#' @title Mesh Digitization
+#' @description Generic function for mesh digitization. It invokes 2 particular methods depending on the class of the
+#'              1st argument \code{M}. So far method is implemented only for the mesh3d object.
+#' @details For details, user should refer to the method \code{\link{digitCurve.mesh3d}} (to digitize a single
+#'          \code{mesh3d} object). \cr
+#'              \cr
+#'              \strong{WARNING}: For Mac users, \code{digitCurves} is currently not compatible with the RStudio interface.
+#'                                Please, use the basic R interface instead. A call from RStudio will cause an error
+#'                                and an exit from the function... \cr
+#' @param M Either a mesh3d object (in this case user should refer to \code{\link{digitCurves.mesh3d}}).
+#' @param ... Additional arguments (all are not optional!) needed for curve digitization.
+#'
+#' @return A numerical matrix (\code{\link{digitCurves.mesh3d}}) with attributes.
+#' @seealso \code{\link{digitCurves.mesh3d}}.
+#' @export
+#'
+digitCurves <- function(M, ...){
+    UseMethod("digitCurves", M)
+}
 #' Digitizing 3d curves
 #'
 #' @param specFull mesh3d object

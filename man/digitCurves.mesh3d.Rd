@@ -4,7 +4,7 @@
 \alias{digitCurves.mesh3d}
 \title{Digitizing 3d curves}
 \usage{
-digitCurves.mesh3d(
+\method{digitCurves}{mesh3d}(
   specFull,
   coords,
   curves,
