@@ -249,10 +249,10 @@ digitMesh.mesh3d <- function (specFull, specDecim = NULL, fixed, idxFixed = 1:fi
 
     # Use or not of a template
     if (is.null(templateCoord)){
-        idxTemplate <- 1:fixed
+        idxTemplate <- idxFixed
     } else {
         if (missing(idxTemplate)) {
-            idxTemplate <- 1:4
+            idxTemplate <- idxFixed[1:4]
             warning("idxTemplate was missing.
                     First 4 landmarks will be used to align the template")
         } else {
@@ -283,7 +283,15 @@ digitMesh.mesh3d <- function (specFull, specDecim = NULL, fixed, idxFixed = 1:fi
     tmp <- scale(t(specDecim$vb[-4, ]), scale = FALSE)
     Trans1 <- attr(tmp, which = "scaled:center")
     specDecim$vb[-4, ] <- t(tmp)
-    specFull$vb[-4, ] <- sweep(specFull$vb[-4, ], 1, Trans1)
+    specFull$vb[-4, ] <- specFull$vb[-4, ] - Trans1
+
+    # Extracting vertex, normals and it from meshes
+    verts_decim <- t(specDecim$vb[-4,])
+    norms_decim <- specDecim$normals
+    it_decim <- matrix(as.integer(specDecim$it), nrow=3)
+    verts_full <- t(specFull$vb[-4,])
+    norms_full <- specFull$normals
+    it_full <- matrix(as.integer(specFull$it), nrow=3)
 
     if (verbose[1]){
         cat("\rInitializations for digitMesh.mesh3d: done!         \n\n")
@@ -300,7 +308,7 @@ digitMesh.mesh3d <- function (specFull, specDecim = NULL, fixed, idxFixed = 1:fi
     }
     if (grDev$meshOptions$meshShade[1]){
         shade3d(specDecim, col = grDev$meshOptions$meshColor[1],
-                alpha = grDev$meshOptions$meshAlpha[1])
+                alpha = grDev$meshOptions$meshAlpha[1], specular="black")
     }
     if (grDev$meshOptions$meshWire[1]){
         wire3d(specDecim, col = grDev$meshOptions$meshColor[1],
@@ -336,28 +344,30 @@ digitMesh.mesh3d <- function (specFull, specDecim = NULL, fixed, idxFixed = 1:fi
 
     # Landmark selection - A is the individual configuration matrix [k x 3]
     A <- Adeci <- matrix(NA, fixed, 3, dimnames = list(1:fixed, c("x", "y", "z")))
+    Vvb <- Vvbdeci <- rep(NA, fixed)
     attr(A, which = "spec.name") <- spec.name
 
     if (verbose[1]) {
         cat("\nLoop for landmark digitization: starts...\n")
         cat("Left click to rotate, scroll wheel to zoom, (for mac users: cmd +) right click to position a landmark.\n")
     }
-    Idx <- setdiff(1:fixed, idxFixed[idxTemplate])
+    Idx <- setdiff(idxFixed, idxTemplate)
     for (i in 1:fixed) {
         if (i <= length(idxTemplate)) {
             # Place 1st points require to adjust the template if it exist otherwise take all pts
-            idx_pts <- idxFixed[idxTemplate[i]]
+            idx_pts <- idxTemplate[i]
             if (verbose[1])
                 cat(paste0("\nPlease digitize landmark: ", idx_pts))
 
-            res <- SelectPoints3d(mesh = specDecim, A = A, IdxPts = idx_pts, grDev = grDev, whichMesh = 1)
+            res <- SelectPoints3d(verts = verts_decim, it = it_decim, norms = norms_decim,
+                                  A = A, IdxPts = idx_pts, grDev = grDev, whichMesh = 1)
 
-            Pt <- res$coords
+            Pt <- specDecim$vb[1:3, res$the_idx]
             grDev$vSp[idx_pts] <- res$sp
             grDev$vTx[idx_pts] <- res$tx
         } else {
             # Selection of remaining landmarks (if any)
-            idx_pts <- idxFixed[Idx[i - length(idxTemplate)]]
+            idx_pts <- Idx[i - length(idxTemplate)]
             if (verbose[1])
                 cat(paste0("\nPlease digitize landmark: ", idx_pts))
 
@@ -365,15 +375,22 @@ digitMesh.mesh3d <- function (specFull, specDecim = NULL, fixed, idxFixed = 1:fi
             Pt <- B[idx_pts, ]
         }
         # zoom on full resolution mesh around the selected landmark
-        Pt2 <- c(project(t(Pt), specFull, trans = TRUE)) # added
-        res2 <- SetPtZoom(specFull = specFull, Pt = Pt2, IdxPts = idx_pts,
-                          orthoplanes = orthoplanes, idxPlanes = idxPlanes, grDev = grDev)
+        Pt2 <- c(project2(c(Pt), specFull, trans = TRUE)) # added
+
+        res2 <- SetPtZoom(specFull = specFull, verts = verts_full, it = it_full, norms = norms_full,
+                          Pt = Pt2, IdxPts = idx_pts, orthoplanes = orthoplanes, idxPlanes = idxPlanes,
+                          A = A, grDev = grDev)
+
         grDev <- res2$grDev
-        # landmark coordinate on the full resolution mesh
+        # landmark coordinate & vertex index on the full resolution mesh
         A[idx_pts, ] <- res2$coords
+        Vvb[idx_pts] <- res2$IdxVert
+        attr(A, which = "vertex.idx") <- Vvb
         # Projection of landmarks on decimated mesh for graphics
         # Adeci[idx_pts,] <- project(res2$coords, specDecim, trans = TRUE)
-        Adeci[idx_pts, ] <- specDecim$vb[1:3, which.min(colSums(abs(specDecim$vb[1:3, ] - c(res2$coords))))]
+        idx <- project2(res2$coords, specDecim, idx = TRUE)
+        Adeci[idx_pts, ] <- specDecim$vb[1:3, idx]
+        Vvbdeci[idx_pts] <- idx
 
         # Graphics
         grDev <- plot.landmark(Adeci[idx_pts, ], d1, idx_pts, grDev, exist = TRUE)
@@ -390,7 +407,7 @@ digitMesh.mesh3d <- function (specFull, specDecim = NULL, fixed, idxFixed = 1:fi
             B <- project(B, specFull, trans = TRUE)
 
             # plot points/labels of B not placed before
-            vv <- idxFixed[Idx]
+            vv <- Idx
             if (length(vv) > 0){
                 for (ii in 1:length(vv)){
                     grDev <- plot.landmark(t(ptsB$vb[1:3, vv[ii]]), d1, vv[ii],
@@ -414,7 +431,9 @@ digitMesh.mesh3d <- function (specFull, specDecim = NULL, fixed, idxFixed = 1:fi
     grDev$dev <- d1
     while (Stop == 0){
         # clicks point on the decimated mesh
-        res <- SelectPoints3d(mesh = specDecim, modify = TRUE, A = Adeci, grDev = grDev, whichMesh = 1)
+        res <- SelectPoints3d(verts = verts_decim, it = it_decim, norms = norms_decim,
+                              modify = TRUE, A = Adeci, grDev = grDev, whichMesh = 1)
+
         if (res$isClosed) {
             if (verbose[1]) cat("\n")
             break
@@ -425,17 +444,24 @@ digitMesh.mesh3d <- function (specFull, specDecim = NULL, fixed, idxFixed = 1:fi
         if (verbose[1])
             cat(paste0("\nLandmark to modify: ", idx_pts))
 
+        attr(A, which = "vertex.idx")[idx_pts] <- NA
+
         # zoom on full resolution mesh
-        Pt2 <- c(project(t(res$coords), specFull, trans = TRUE)) # added
-        res2 <- SetPtZoom(specFull = specFull, Pt = Pt2, IdxPts = idx_pts,
-                          orthoplanes = orthoplanes, idxPlanes = idxPlanes, grDev =  grDev)
+        Pt2 <- c(project2(c(specDecim$vb[1:3, res$the_idx]), specFull, trans = TRUE)) # added
+        res2 <- SetPtZoom(specFull = specFull, verts = verts_full, it = it_full, norms = norms_full,
+                          Pt = Pt2, IdxPts = idx_pts, orthoplanes = orthoplanes, idxPlanes = idxPlanes,
+                          A = A, grDev =  grDev)
+
         grDev <- res2$grDev
         # landmark coordinate on the full resolution mesh
         A[idx_pts, ] <- res2$coords
+        Vvb[idx_pts] <- res2$IdxVert
+        attr(A, which = "vertex.idx") <- Vvb
         # Projection of the landmark on the decimated mesh for graphics
         # Adeci[idx_pts, ] <- project(res2$coords, specDecim, trans = TRUE)
-        idx <- which.min(colSums(abs(specDecim$vb[1:3, ] - c(res2$coords))))
+        idx <- project2(res2$coords, specDecim, idx = TRUE)
         Adeci[idx_pts, ] <- specDecim$vb[1:3, idx]
+        Vvbdeci[idx_pts] <- idx
 
         # Graphics
         grDev$vSp[idx_pts] <- res$sp
@@ -451,6 +477,9 @@ digitMesh.mesh3d <- function (specFull, specDecim = NULL, fixed, idxFixed = 1:fi
 
     if (verbose[1])
         cat("\nMesh digitization is ended!\n")
+
+    # suppress vertex index attributes
+    attr(A, which = "vertex.idx") <- NULL
 
     return(A)
 }
@@ -581,6 +610,14 @@ digitMesh.character <- function(sdir, fixed, idxFixed = 1:fixed,
     saveTPS <- FiOpt$saveTPS
     append <- FiOpt$append
     overwrite <- FiOpt$overwrite
+
+    # check filename for tps file
+    setwd(full.dir)
+    lf<-list.files()
+    full.name <- paste(saveTPS, c(".tps", "")[1 + grepl(".tps", tolower(saveTPS))], sep = "")
+    if(!overwrite & is.element(full.name, lf) & !append){
+        stop("A file with this name already exists... Please provide another file name, or allow the current file to be deleted (see FiOpt argument)")
+    }
 
     if (verbose[1])
         cat("\rChecking arguments for digitMesh: done!         \n")
@@ -864,3 +901,138 @@ digitMesh.character <- function(sdir, fixed, idxFixed = 1:fixed,
 
     return(A)
 }
+
+
+digit_Mesh <- function(typeObj, nbObj, meshFull, spec.name = NULL, A = NULL, ObjOpt = NULL,
+                       smoothMesh = NULL, processOnFull = FALSE, meshDecim = NULL,
+                       decimMesh = (is.null(meshDecim) & identical(typeObj, "Lm")),
+                       tarface = 15000, templateCoord = NULL, idxTemplate = NULL,
+                       GrOpt = setGraphicOptions(), verbose = c(TRUE, TRUE)){
+
+
+
+
+
+  # arguments & extraction
+  LArgs <- c(as.list(environment()))
+  checkArgs(LArgs)
+  print(zzz)
+
+  # mesh pre-treatment
+  preTreat(meshFull, meshDecim)
+
+  # interactive digitization
+  digitLm(meshFull)
+  digitCurve(meshFull)
+  digitPatch(meshFull)
+
+  # interactive correction of previously digitzed mesh
+  CorrectLm(meshFull)
+  CorrectCurve(meshFull)
+  CorrectPatch(meshFull)
+
+}
+
+
+checkArgs <- function(LArgs){
+
+  # extract arguments from list
+  for (i in 1:length(LArgs)){
+    assign(names(LArgs)[i], LArgs[[i]])
+  }
+
+  # check OS and R GUI to avoid graphic incompatibilities related to mac os and Rstudio
+  tmp <- checkOsGui(GrOpt$winOptions$winNb, GrOpt$winOptions$winSynchro)
+  GrOpt$winOptions$winNb <- tmp[[1]]
+  GrOpt$winOptions$winSynchro <- tmp[[2]]
+
+  # check full resolution mesh
+  if (!(any(class(meshFull) == "mesh3d"))) {
+    stop("meshFull must have class \"mesh3d\".")
+  }
+
+  # extract individual name
+  if (is.null(spec.name)){
+    spec.name <- deparse(substitute(meshFull))
+  }
+
+  # check verbose
+  verbose <- checkLogical(verbose, c(1, 2))
+
+  # check decimated mesh (if needed)
+  if (!processOnFull){
+    makeDecimation <- FALSE
+    if (is.null(meshDecim)){
+      makeDecimation <- TRUE
+      warning(paste("meshDecim was missing.
+                     Decimation of the full mesh to tarface = ", tarface, " will be done..."),
+              immediate. = TRUE)
+    }else if(!(any(class(meshDecim) == "mesh3d"))){
+      stop("meshDecim must have class \"mesh3d\".")
+    }
+  }
+
+  # check which setting of GrOpt$PCplanesDraw is called
+  # and set idxPlanes consequently
+  if (is.logical(GrOpt$PCplanesOptions$PCplanesDraw)) {
+    if (GrOpt$PCplanesOptions$PCplanesDraw) {
+      idxPlanes <- 1:3
+    } else {
+      idxPlanes <- NULL
+    }
+  } else {
+    V <- c("pc2-pc3", "pc1-pc3", "pc1-pc2")
+    idxPlanes <- which(is.element(V, tolower(GrOpt$PCplanesOptions$PCplanesDraw)))
+  }
+
+  # Object to digitize
+  typeObj <- checkLength(typeObj, 1)
+  if (!is.character(typeObj)){
+    stop("typeObj should be a character value within c(\"Lm\", \"Curve\", \"Patch\")")
+  }
+  if (!exists(nbObj)) {
+    stop("missing number of objects to digitize")
+  } else {
+    if (!is.numeric(nbObj) || length(nbObj) > 1)
+      stop("nbObj must be a single number")
+  }
+  setObjectOptions(typeObj, nbObj, ObjOpt)
+  print(yyy)
+
+
+  # Use or not of a template
+  if (is.null(templateCoord)){
+    idxTemplate <- idxFixed
+  } else {
+    if (!exists(idxTemplate)) {
+      idxTemplate <- idxFixed[1:4]
+      warning("idxTemplate was missing.
+                    First 4 landmarks will be used to align the template", immediate. = TRUE)
+    } else {
+      if (length(idxTemplate) < 4) {
+        stop("idxTemplate must contain at least 4 landmarks")
+      }
+    }
+    p1 <- length(idxTemplate)
+    template <- list()
+    template$M <- templateCoord
+  }
+
+  # Define default values for graphics interactivity
+  grDev <- GrOpt
+  # check if the mesh is actually colored
+  if (!GrOpt$meshOptions$meshVertCol)
+    meshFull$material$color <- meshDecim$material$color <- NULL
+  if (grDev$meshOptions$meshVertCol & is.null(meshFull$material$color)){
+    grDev$meshOptions$meshVertCol <- FALSE
+  }
+  grDev$vSp <- grDev$vTx <- Sp <- Tx <- rep(NA, fixed)
+  grDev$spradius <- GrOpt$spheresOptions$spheresRad
+  tmp <- diff(apply(meshDecim$vb[1:3, ], 1, range))
+  grDev$spradius[, 1] <- GrOpt$spheresOptions$spheresRad[, 1] * mean(tmp)
+  grDev$labadj <- GrOpt$labelOptions$labelAdj * mean(tmp)
+
+  print(zzz)
+
+}
+

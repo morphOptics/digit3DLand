@@ -5,7 +5,7 @@
 \title{Sets File Options}
 \usage{
 setFileOptions(M, sdir=getwd(), patt=".ply", deci.suffix=NULL, deci.dir="DecimMesh",
-               saveTPS="coord", overwrite=FALSE , append=FALSE)
+               saveTPS="", overwrite=FALSE , append=FALSE)
 }
 \arguments{
 \item{M}{A character value indicating either a mesh filename (with extension) contained in \code{sdir}, or a
@@ -31,7 +31,7 @@ exist yet).}
 \item{saveTPS}{Either a character value indicating the name (with extension) for the TPS filename to export
 landmark coordinates, or a \code{FALSE} value if user don't want save coordinate. The TPS file will
 be saved within the directory specified by \code{M}. \cr
-Default: \code{"coord.tps"}.}
+Default: \code{""} indicates that the tps filename will be set depending on the processed mesh or directory (\code{M}).}
 
 \item{overwrite}{A logical value taking values within \{\code{TRUE},\code{FALSE}\} indicating if the TPS file shoud
 be overwritten if the provided filename already exists. \cr

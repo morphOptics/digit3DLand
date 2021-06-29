@@ -266,7 +266,7 @@ checkLogical<-function(M,len,message=as.character(deparse(substitute(M)))){
 checkMat<-function(M,message=as.character(deparse(substitute(M)))){
     #?! (see Algebraic notation (chess) for meaning...)
 
-    if (!is.element(class(matrix(1,2,2)),c("matrix","numeric"))){
+    if (!any(is.element(class(M),c("matrix","numeric","character")))){
         stop(paste0(message," should be either a matrix or vector..."))
     }
     if (length(M)>4 | length(M)==3){
@@ -319,8 +319,9 @@ checkMat<-function(M,message=as.character(deparse(substitute(M)))){
 #'
 #'          - the \strong{zoom options} allow to set the extent of the zoomed area (\code{zoomPercDist}), to project
 #'            or not on the decimated mesh this extent (\code{zoomPtsDraw}) and to set its color (\code{zoomPtsCol}),
-#'            and to display or not on the full mesh the landmark pre-positionned on the decimated mesh
-#'            (\code{zoomSeeLm}).
+#'            to display or not on the full mesh the landmark pre-positionned on the decimated mesh
+#'            (\code{zoomSeeLm}), and to display or not on the full mesh the already positionned landmarks
+#'            (\code{zoomSeePrevLm}).
 #' @usage
 #' setGraphicOptions(winNb=1, winSize= rbind(c(0,50,830,904), c(840,50,1672,904)), winSynchro=TRUE,
 #'                   meshVertCol=TRUE, meshColor=rep("gray",2), meshAlpha=rep(1,2), meshShade=rep(TRUE,2),
@@ -329,7 +330,7 @@ checkMat<-function(M,message=as.character(deparse(substitute(M)))){
 #'                   intersectLines=TRUE, intersectPoints=FALSE, intersectColor="red",
 #'                   spheresRad=0.02, spheresColor=matrix(c("black","blue"),2,2), spheresAlpha=1,
 #'                   labelCex=2, labelColor="magenta", labelAdj=0.02,
-#'                   zoomPercDist=0.15, zoomPtsDraw=TRUE, zoomPtsCol="orange", zoomSeeLm=FALSE)
+#'                   zoomPercDist=0.15, zoomPtsDraw=TRUE, zoomPtsCol="orange", zoomSeeLm=FALSE, zoomSeePrevLm=TRUE)
 #'
 #' @param winNb A numeric value within \{\code{1},\code{2}\} setting for the number of grahical devices: \cr
 #'              - \code{1} (default) for a single device subdivided into 2 parts (one for the decimated mesh, the
@@ -466,12 +467,15 @@ checkMat<-function(M,message=as.character(deparse(substitute(M)))){
 #' @param zoomPtsCol A character value taking values within \code{\link[grDevices]{colors}}() indicating with which
 #'                   color the zoom extent (if \code{zoomPtsDraw} is set to \code{TRUE}) should be plotted. \cr
 #'                   Default: \code{"orange"}.
-#' @param zoomSeeLm A logical value indicating if the landmark placed by user on the decimated mesh should be visible
+#' @param zoomSeeLm A logical value indicating if the landmark placed by the user on the decimated mesh should be visible
 #'                  on the zoomed mesh. It will slightly fasten the process of the landmark digitizing enabling the
 #'                  direct validation (without any manual change) of the placed landmark, but at the risk of a more or
 #'                  less important approximation on the landmark positioning depending on the degree of decimation
 #'                  used for the decimated mesh. \cr
 #'                  Default: \code{FALSE}.
+#' @param zoomSeePrevLm A logical value indicating if the landmarks already placed by the user should be visible
+#'                  on the zoomed mesh if they are located in the zoom extent. \cr
+#'                  Default: \code{TRUE}.
 #'
 #' @return A list of those parameters gathered in sublists following the thematic categorization described above.
 #' @seealso \code{\link{setDecimOptions}}, \code{\link{setFileOptions}}, \code{\link{setTemplOptions}}.
@@ -496,7 +500,7 @@ setGraphicOptions <- function(winNb = 1,
                               spheresRad = 1e-2, spheresColor = matrix(c("black", "blue"), 2, 2), spheresAlpha = 1,
                               labelCex = 2, labelColor="magenta", labelAdj = 2e-2,
                               zoomPercDist = 0.15, zoomPtsDraw = TRUE,
-                              zoomPtsCol = "orange", zoomSeeLm = FALSE) {
+                              zoomPtsCol = "orange", zoomSeeLm = FALSE, zoomSeePrevLm = TRUE) {
 
     # Allow to set graphical options for DigitFixed.
     # The simplest use with no argument returns a list with default values for all settable parameters:
@@ -670,8 +674,11 @@ setGraphicOptions <- function(winNb = 1,
     if (length(zoomSeeLm) != 1 | !is.logical(zoomSeeLm) | any(is.na(zoomSeeLm))){
         stop("zoomSeeLm should be a logical value...")
     }
+    if (length(zoomSeePrevLm) != 1 | !is.logical(zoomSeePrevLm) | any(is.na(zoomSeePrevLm))){
+        stop("zoomSeePrevLm should be a logical value...")
+    }
     zoomOptions <- list(zoomPercDist = zoomPercDist, zoomPtsDraw = zoomPtsDraw,
-                        zoomPtsCol = zoomPtsCol, zoomSeeLm = zoomSeeLm)
+                        zoomPtsCol = zoomPtsCol, zoomSeeLm = zoomSeeLm, zoomSeePrevLm = zoomSeePrevLm)
 
     options(warn = warn)
 
@@ -697,7 +704,7 @@ setGraphicOptions <- function(winNb = 1,
 #'          containing the full mesh(es) as well as the filename(s) of full mesh(es) to treat.
 #' @usage
 #' setFileOptions(M, sdir=getwd(), patt=".ply", deci.suffix=NULL, deci.dir="DecimMesh",
-#'                saveTPS="coord", overwrite=FALSE , append=FALSE)
+#'                saveTPS="", overwrite=FALSE , append=FALSE)
 #' @param M A character value indicating either a mesh filename (with extension) contained in \code{sdir}, or a
 #'          subdirectory name (not a path) contained in \code{sdir} in which a set of mesh files should be processed
 #'          for digitization.
@@ -716,7 +723,7 @@ setGraphicOptions <- function(winNb = 1,
 #' @param saveTPS Either a character value indicating the name (with extension) for the TPS filename to export
 #'                landmark coordinates, or a \code{FALSE} value if user don't want save coordinate. The TPS file will
 #'                be saved within the directory specified by \code{M}. \cr
-#'                Default: \code{"coord.tps"}.
+#'                Default: \code{""} indicates that the tps filename will be set depending on the processed mesh or directory (\code{M}).
 #' @param overwrite A logical value taking values within \{\code{TRUE},\code{FALSE}\} indicating if the TPS file shoud
 #'                  be overwritten if the provided filename already exists. \cr
 #'                  Default: \code{FALSE} => will generate an error if the file aready exists...
@@ -731,7 +738,7 @@ setGraphicOptions <- function(winNb = 1,
 #' @export
 #'
 setFileOptions<-function(M, sdir = getwd(), patt = ".ply", deci.suffix = NULL,
-                         deci.dir = "DecimMesh", saveTPS = "coord",
+                         deci.dir = "DecimMesh", saveTPS = "",
                          overwrite = FALSE , append = FALSE) {
 
     curdir <- getwd()
@@ -760,25 +767,10 @@ setFileOptions<-function(M, sdir = getwd(), patt = ".ply", deci.suffix = NULL,
         stop("At least one of the following arguments should be provided: deci.suffix or deci.dir...")
     }
 
-    if (is.logical(saveTPS)){
-        saveTPS <- checkLogical(saveTPS, 1)
-        if (saveTPS){
-            stop("saveTPS should be either FALSE or a string...")
-        }
-        overwrite <- NA
-        append <- NA
-    } else {
-        saveTPS <- checkLength(saveTPS, 1)
-        if (!is.character(saveTPS)) {
-            stop("saveTPS should be either FALSE or a string...")
-        }
-        overwrite <- checkLogical(overwrite,1)
-        append <- checkLogical(append,1)
-    }
-
     # determination of full.dir, full.files and deci.dir
     setwd(sdir)
     if (dir.exists(M)){
+        saveTPS <- M
         full.dir <- paste(getwd(), M, sep = "/")
         setwd(full.dir)
         full.files <- list.files(pattern = patt, ignore.case = TRUE)
@@ -804,10 +796,28 @@ setFileOptions<-function(M, sdir = getwd(), patt = ".ply", deci.suffix = NULL,
                 }
                 deci.dir <- paste(full.dir, deci.dir, sep = "/")
             }
+            saveTPS <- paste(rev(rev(strsplit(M,"\\.")[[1]])[-1]), collapse = ".")
         } else {
             stop("Provided filename doesn't exist...")
         }
     }
+
+    if (is.logical(saveTPS)){
+        saveTPS <- checkLogical(saveTPS, 1)
+        if (saveTPS){
+            stop("saveTPS should be either FALSE or a string...")
+        }
+        overwrite <- NA
+        append <- NA
+    } else {
+        saveTPS <- checkLength(saveTPS, 1)
+        if (!is.character(saveTPS)) {
+            stop("saveTPS should be either FALSE or a string...")
+        }
+        overwrite <- checkLogical(overwrite,1)
+        append <- checkLogical(append,1)
+    }
+
     setwd(curdir)
 
     return(list(sdir = sdir, patt = patt, deci.suffix = deci.suffix, deci.dir = deci.dir,

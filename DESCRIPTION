@@ -1,8 +1,8 @@
 Package: digit3DLand
 Type: Package
 Title: Digitalization of 3D landmarks on mesh
-Version: 0.1.3
-Date: 2017-03-06
+Version: 0.2.0
+Date: 2019-03-07
 Authors@R: c(person("Remi", "Laffont", email = "remi.laffont@u-bourgogne.fr", role = c("aut", "cre")),
     person("Nicolas", "Navarro", email = "nicolas.navarro@ephe.psl.eu",
     role = c("aut")))
@@ -11,9 +11,9 @@ Author: Nicolas Navarro [aut],
 Description:
 License: GPL (>=2.0)
 Depends:
-    R (>= 3.1.0), Rcpp, rgl, Rvcg, sp, Morpho
+    R (>= 3.1.0), Rcpp, rgl (>= 0.106.8), Rvcg, sp, Morpho
 LazyData: TRUE
-RoxygenNote: 6.1.1
+RoxygenNote: 7.1.1
 URL: https://github.com/nnavarro/digit3DLand
 LinkingTo: Rcpp, RcppArmadillo (>= 0.4)
 NeedsCompilation: yes

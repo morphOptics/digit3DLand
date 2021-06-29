@@ -53,6 +53,7 @@ colTransf <- function(M1, M2){
 
     return(M2)
 }
+
 # Subset Mesh
 subset.mesh3d <- function(mesh, subset, select = c("vb", "normals", "it", "material")) {
 
@@ -72,10 +73,13 @@ subset.mesh3d <- function(mesh, subset, select = c("vb", "normals", "it", "mater
 
     if (any(c("face", "faces", "it") %in% select)) {
         idx_subset <- which(subset)
-        idxV <- is.element(mesh$it, idx_subset)
-        idxV <- matrix(idxV, nrow = 3, ncol = dim(mesh$it)[2])
+        it <- as.integer(mesh$it)
+        idxV <- matrix(subset[it], nrow=3)
         idx <- (colSums(idxV) == 3)
-        subMesh$it <- matrix(match(mesh$it[, idx], idx_subset), nrow = 3, ncol = sum(idx))
+        it <- as.integer(mesh$it[, idx])
+        sit <- sort(unique(it))
+        svb <- which(is.element(idx_subset, sit))
+        subMesh$it <- matrix(svb[findInterval(it, sit)], nrow = 3)
     }
 
     if (any(c("mat", "material") %in% select)) {
@@ -87,8 +91,47 @@ subset.mesh3d <- function(mesh, subset, select = c("vb", "normals", "it", "mater
         } else subMesh$material <- "gray"
     }
     class(subMesh) <- "mesh3d"
+
     return(subMesh)
 }
+
+# Isolated components of a mesh by returning vertex index
+vcgIsolatedIndex <- function(Mesh, split = TRUE, silent = TRUE){
+
+    # diversion of the classcial use of vcgIsolated from Rvcg to get the vertex indexes from the given
+    # Mesh to the subcomponents ones
+
+    # saves original vertexes
+    nvb <- ncol(Mesh$vb)
+    vb <- Mesh$vb
+    norms <- Mesh$normals
+
+    # replace original vertex by their index (ie their column ranks in $vb)
+    # => Mesh hasn't anymore true vertex coordinates, but to split Mesh, only $it info is actually necessary
+    Mesh$vb[1:3, ] <- rep(1:nvb, each=3)
+    Mesh$normals <- NULL
+
+    # split Mesh into separated components (if any)
+    # th $vb parts from the resulting isol list will contain the vertex ranks from Mesh
+    isol <- vcgIsolated(Mesh, split = split, silent = silent)
+
+    # replace Mesh$vb by true vertex coordinates
+    Mesh$vb <- vb
+    Mesh$normals <- norms
+
+    # rounds (just in case) vertex indexes returned in the isol list
+    idx_vb <- lapply(isol, f <- function(L){round(L$vb[1, ])})
+
+    # builds the list of separated mesh3d objects as normally returns by vcgIsolated
+    isol <- mapply(function(mesh, Idx, mm){mesh$vb <- mm$vb[, Idx]
+                                           mesh$normals <- mm$normals[, Idx]
+                                           return(mesh)},
+                   isol, idx_vb, MoreArgs = list(Mesh), SIMPLIFY=FALSE)
+
+    return(list(isol, idx_vb))
+
+}
+
 
 # Mesh decimation utilities ----
 #' Mesh Decimation

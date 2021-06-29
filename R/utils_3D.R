@@ -31,20 +31,46 @@ project <- function (lm, mesh, sign = TRUE, trans = FALSE) {
     return(data)
 }
 
+# Find closest mesh vertex to a given point based on euclidean distance
+# returns either the vertex coordinates or its index
+project2 <- function (lm, mesh, trans = FALSE, idx = FALSE){
+
+  lm <- c(lm)
+  if (is.list(mesh)){
+    vb <- mesh$vb[1:3,]
+  }else{
+    vb <- mesh
+  }
+
+  vi <- which.min(sqrt(colSums((vb - lm)^2)))
+
+  if (idx){
+    return(vi)
+  }
+
+  data <- list()
+  data$vb <- vb[, vi, drop=FALSE]
+
+  if (trans) data <- t(data$vb[1:3, ])
+  return(data)
+
+}
+
 rotMajorAxes <- function(mat) {
-    if (dim(mat)[1] == 3) {
-        u <- svd(mat)$u
-    } else {
-        u <- svd(mat)$v
-    }
-    R <- tcrossprod(u)
-    if (det(R) < 0) {
-        u[, 3] <- -1 * u[, 3]
-        R <- tcrossprod(u)
-    }
-    tmp <- diag(rep(1,4))
-    tmp[1:3, 1:3] <- R
-    return(tmp)
+
+  if (dim(mat)[1] == 3){
+    vcv <- cov(t(mat))
+  }else{
+    vcv <- cov(mat)
+  }
+  u <- svd(vcv)$u
+  if (det(u)<0){
+    u[,3]<-u[,3]*-1
+  }
+  R<-diag(rep(1,4))
+  R[1:3,1:3] <- t(u)
+
+  return(R)
 }
 
 ###########################
@@ -110,7 +136,7 @@ plot.landmark <- function(landmark, d1, idx_pts, grDev, exist = FALSE,...){
         useSubscene3d(subS[2, 1])
     }
 
-    if (exist) {
+    if (exist & !is.na(grDev$vSp[idx_pts])) {
         rgl.pop("shapes", grDev$vSp[idx_pts])
         rgl.pop("shapes", grDev$vTx[idx_pts])
     }
