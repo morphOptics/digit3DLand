@@ -278,7 +278,7 @@ digitCurves.mesh3d <- function(specFull, coords, curves, npts = 1000, nsLds,
             idxcrv <- which(unlist(lapply(ctrl_pts, function(x) any(idx_pts %in% x))))
             pts <- A[ctrl_pts[[idxcrv]], ]
             curve_pts[[idxcrv]] <- splineCurve(pts, npts, mesh = specFull)
-            smLds[[idxcrv]] <- curve_pts[[idxcrv]][(seq(1, npts, by = nsLds[idxcrv] + 2))[-c(1, nsLds[idxcrv] + 2)], ]
+            smLds[[idxcrv]] <- curve_pts[[idxcrv]][(seq(1, npts, length = nsLds[idxcrv] + 2))[-c(1, nsLds[idxcrv] + 2)], ]
 
             # Graphics
             grDev <- plot.curve(curve_pts[[idxcrv]], smLds[[idxcrv]], d1 = d1, idx_curv = idxcrv,
