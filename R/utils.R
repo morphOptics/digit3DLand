@@ -747,6 +747,7 @@ setFileOptions<-function(M, sdir = getwd(), patt = ".ply", deci.suffix = NULL,
     if (!is.character(M)) {
         stop("M should be a string...")
     }
+    M <- rev(strsplit(M, "/")[[1]])[1]
 
     sdir <- checkLength(sdir,1)
     if (!is.character(sdir) | !dir.exists(sdir)) {
@@ -762,15 +763,24 @@ setFileOptions<-function(M, sdir = getwd(), patt = ".ply", deci.suffix = NULL,
     if (!is.null(deci.dir) & !is.character(deci.dir)) {
         stop("deci.dir should be either null or a string...")
     }
+    deci.dir <- rev(strsplit(deci.dir, "/")[[1]])[1]
 
     if (is.null(deci.suffix) & is.null(deci.dir)) {
         stop("At least one of the following arguments should be provided: deci.suffix or deci.dir...")
     }
 
+    saveTPS <- checkLength(saveTPS,1)
+    if (!is.character(saveTPS)) {
+        stop("saveTPS should be a string...")
+    }
+
     # determination of full.dir, full.files and deci.dir
     setwd(sdir)
     if (dir.exists(M)){
-        saveTPS <- M
+        if (nchar(saveTPS) < 1){
+            saveTPS <- M
+        }
+
         full.dir <- paste(getwd(), M, sep = "/")
         setwd(full.dir)
         full.files <- list.files(pattern = patt, ignore.case = TRUE)
@@ -796,7 +806,10 @@ setFileOptions<-function(M, sdir = getwd(), patt = ".ply", deci.suffix = NULL,
                 }
                 deci.dir <- paste(full.dir, deci.dir, sep = "/")
             }
-            saveTPS <- paste(rev(rev(strsplit(M,"\\.")[[1]])[-1]), collapse = ".")
+
+            if (nchar(saveTPS) < 1){
+                saveTPS <- paste(rev(rev(strsplit(M,"\\.")[[1]])[-1]), collapse = ".")
+            }
         } else {
             stop("Provided filename doesn't exist...")
         }
